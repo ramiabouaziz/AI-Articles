@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "source": "PubMed",
+    "title": "Modeling sympathetic neuro-cardiac interactions in a hiPSC-based microphysiological system.",
+    "journal": "Lab on a chip",
+    "date": "2026",
+    "link": "https://pubmed.ncbi.nlm.nih.gov/42635618/",
+    "text": "Modeling sympathetic neuro-cardiac interactions in a hiPSC-based microphysiological system.. The cardiac autonomic nervous system is a key driver of various cardiac disorders and arrhythmias. However, investigating neuronal regulation of the human heart has proven difficult due to the limited availability of reliable experimental models. Here, we present a novel microphysiological system using a compartmentalized microfluidic device (MFD) to integrate co-cultured human induced pluripotent stem cell (hiPSC)-derived cardiomyocytes (hiPSC-CMs) and sympathetic neurons (hiPSC-SNs). MFD is composed of two wide-open chambers separated by microfluidic microchannels. Patch-clamp electrophysiology, RT-qPCR, immunofluorescence, and video-motion recording were used to characterize the phenotype of hiPSC-SNs and their functional coupling with hiPSC-CMs in the MDF. Immunofluorescence and RT-qPCR demonstrated significantly increased expression of the sympathetic neuronal markers peripherin, tyrosine hydroxylase, βIII-tubulin, dopamine β-hydroxylase, and nicotinic acetylcholine receptors, confirming successful differentiation into a sympathetic neuronal phenotype. Patch-clamp electrophysiology further demonstrated functional maturation, with hiPSC-SNs exhibiting spontaneous action potentials and nicotine-triggered membrane depolarization in response to 1 μM nicotine. Co-culture of hiPSC-CMs and hiPSC-SNs within the MFD promoted axonal projection into the cardiomyocyte chamber, establishing a physical connection between the two cell types. After 10 days of co-culture, functional integration was confirmed by a significant increase in hiPSC-CMs action potential frequency and beating rate, as recorded by patch-clamp and video motion tracking, respectively. Furthermore, selective nicotine stimulation of the neuronal chamber increased both action potential frequency and beating rate in hiPSC-CMs, whereas β-adrenergic blockade with 5 μM propranolol significantly reduced the beating rate. Collectively, these data demonstrate the feasibility of differentiating hiPSCs into functional sympathetic neurons and establishing a robust neuro-cardiac interface. This microphysiological system represents a powerful platform for investigating disorders characterized by impaired neuro-cardiac interactions, offering a valuable tool for both disease modeling and pharmacological screening.",
+    "vocabStatus": "moderate",
+    "vocabDensity": 1.39,
+    "explicitHit": null,
+    "detectorProvider": "configure-provider-name"
+  },
+  {
+    "source": "Zenodo",
+    "title": "Integrating Traditional Knowledge Systems into Geriatric Care: The Behavioral Philosophy of Yagya",
+    "journal": "Mishra, Saurabh, Mishra, Alka",
+    "date": "2026-08-24",
+    "link": "https://zenodo.org/records/22085913",
+    "text": "Integrating Traditional Knowledge Systems into Geriatric Care: The Behavioral Philosophy of Yagya.     Modern healthcare often addresses aging and lifestyle disorders through purely external interventions, frequently overlooking the inner dimensions of human behavior and consciousness. This article explores the ancient Indian philosophical concept of        Yagya        as a multidimensional framework for holistic health and healthy aging. Beyond its traditional physical rituals,        Yagyagni        (the fire of        Yagya       ) imparts profound behavioral teachings, such as diligent action, minimalist consumption, and altruistic distribution that directly counteract the lethargy and over-consumption driving cardiometabolic and psychological decline. By adopting these practical, psychological tools into daily routines, individuals can foster the behavioral shifts necessary for maintaining cognitive and physical vitality. Ultimately, integrating these philosophical interventions into routine patient care promotes a paradigm shift from technocratic disease management to the internal, ethical transformation of the individual.    ",
+    "vocabStatus": "moderate",
+    "vocabDensity": 2.19,
+    "explicitHit": null,
+    "detectorProvider": "configure-provider-name"
+  },
+  {
+    "source": "Zenodo",
+    "title": "HBTC Framework: Hierarchical Biological Therapeutic Computation for Programmable Medicine - Spatial Transcriptomics & Kinetic Targeting",
+    "journal": "Moreno Sanchez-Campa, Jose Maria",
+    "date": "2026-08-24",
+    "link": "https://zenodo.org/records/21321064",
+    "text": "HBTC Framework: Hierarchical Biological Therapeutic Computation for Programmable Medicine - Spatial Transcriptomics & Kinetic Targeting.   Comprehensive computational framework and bioinformatic pipeline for the HBTC Framework: Hierarchical Biological Therapeutic Computation for Programmable Medicine, integrating single-cell spatial transcriptomics with synthetic biology and programmatic nanotherapeutic delivery in Pancreatic Ductal Adenocarcinoma (PDAC).  \n  &nbsp;  \n  The repository and archive are structured into four sequential phases:  \n  - Phase 1 (Documentation &amp; Architectural Context): Theoretical foundations, technical abstracts, and translational specifications.  \n  - Phase 2 (Computational Scripts &amp; Source Code): Python source code for 10x Genomics Visium data preprocessing, Scanpy normalization, spatial co-expression correlation, niche validation, and Michaelis-Menten kinetic release simulations for the NP-B nanotherapeutic construct.  \n  - Phase 3 (Tabular Data &amp; Result Matrices): Processed marker genes, niche expression means, and nanoparticle release efficiency matrices.  \n  - Phase 4 (Visualizations, Infographics &amp; Final Reports): High-resolution UMAP clusters, H&amp;E spatial overlaps, stacked violin plots, correlation heatmaps, and comprehensive standalone executive reports (PDF &amp; HTML).  \n  &nbsp;  \n  Primary Data Source: NCBI Gene Expression Omnibus (GEO), dataset accession GSE274103.  ",
+    "vocabStatus": "moderate",
+    "vocabDensity": 1.21,
+    "explicitHit": null,
+    "detectorProvider": "configure-provider-name"
+  }
+]

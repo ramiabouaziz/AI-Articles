@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redline Watch — AI-assisted drafting monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EEF1F0;
+    --paper-card: #F8FAF9;
+    --ink: #1B2430;
+    --ink-soft: #4B5563;
+    --rule: #C7CDC9;
+    --red: #B3261E;
+    --red-soft: #F4DEDC;
+    --amber: #9A6A0C;
+    --amber-soft: #F3E6C9;
+    --teal: #1F6E63;
+    --teal-soft: #DCEBE7;
+    --radius: 3px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    * { animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+  }
+
+  a { color:inherit; }
+
+  .wrap{
+    max-width:820px;
+    margin:0 auto;
+    padding:0 24px 96px;
+  }
+
+  /* ---------- Masthead ---------- */
+
+  header.masthead{
+    padding:56px 0 28px;
+    border-bottom:3px solid var(--ink);
+  }
+
+  .kicker{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--red);
+    margin:0 0 10px;
+  }
+
+  h1.title{
+    font-family:'Newsreader', serif;
+    font-weight:600;
+    font-size:clamp(40px, 7vw, 64px);
+    line-height:.98;
+    margin:0 0 14px;
+    letter-spacing:-0.01em;
+  }
+
+  h1.title .redline-mark{
+    position:relative;
+    display:inline-block;
+  }
+  h1.title .redline-mark::after{
+    content:'';
+    position:absolute;
+    left:-2%; right:-2%; top:38%;
+    height:3px;
+    background:var(--red);
+    transform:scaleX(0);
+    transform-origin:left;
+    animation:strike .7s .3s ease-out forwards;
+  }
+  @keyframes strike{ to { transform:scaleX(1); } }
+
+  .dek{
+    font-size:16px;
+    color:var(--ink-soft);
+    max-width:56ch;
+    margin:0;
+  }
+
+  .dek strong{ color:var(--ink); font-weight:600; }
+
+  /* ---------- Stat strip ---------- */
+
+  .stats{
+    display:flex;
+    gap:0;
+    margin-top:26px;
+    border-top:1px solid var(--rule);
+  }
+  .stat{
+    flex:1;
+    padding:14px 0 0;
+    border-right:1px solid var(--rule);
+  }
+  .stat:last-child{ border-right:none; }
+  .stat .n{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:26px;
+    font-weight:500;
+  }
+  .stat .l{
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+
+  /* ---------- Method note ---------- */
+
+  .method{
+    margin:28px 0 0;
+    padding:14px 16px;
+    background:var(--paper-card);
+    border:1px solid var(--rule);
+    border-radius:var(--radius);
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  .method a { text-decoration:underline; text-decoration-color:var(--rule); }
+  .method strong { color:var(--ink); }
+
+  /* ---------- Feed ---------- */
+
+  .feed{ margin-top:44px; }
+
+  .feed-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .feed-head h2{
+    font-family:'Newsreader', serif;
+    font-size:20px;
+    font-weight:600;
+    margin:0;
+  }
+  .feed-head .updated{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+
+  .card{
+    display:grid;
+    grid-template-columns:34px 1fr;
+    background:var(--paper-card);
+    border:1px solid var(--rule);
+    border-radius:var(--radius);
+    margin-bottom:14px;
+    overflow:hidden;
+  }
+
+  .margin{
+    background:var(--red-soft);
+    border-right:1px solid var(--rule);
+    padding:16px 0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+  }
+  .card.level-low .margin{ background:var(--teal-soft); }
+  .card.level-moderate .margin{ background:var(--amber-soft); }
+  .card.level-high .margin{ background:var(--red-soft); }
+
+  .margin .tick{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    color:var(--red);
+    transform:rotate(-6deg);
+  }
+  .card.level-low .margin .tick{ color:var(--teal); }
+  .card.level-moderate .margin .tick{ color:var(--amber); }
+
+  .body{ padding:16px 18px 18px; }
+
+  .row-top{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:8px;
+    flex-wrap:wrap;
+  }
+
+  .badge{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    padding:3px 7px;
+    border-radius:2px;
+    background:var(--red);
+    color:#fff;
+  }
+  .card.level-low .badge{ background:var(--teal); }
+  .card.level-moderate .badge{ background:var(--amber); }
+
+  .source{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+
+  .date{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-left:auto;
+  }
+
+  h3.headline{
+    font-family:'Newsreader', serif;
+    font-size:19px;
+    font-weight:500;
+    line-height:1.28;
+    margin:0 0 10px;
+  }
+  h3.headline a{ text-decoration:none; }
+  h3.headline a:hover{ text-decoration:underline; text-decoration-color:var(--red); }
+
+  .signals{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:10px;
+  }
+  .signal{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    padding:2px 7px;
+    border:1px solid var(--rule);
+    border-radius:2px;
+    color:var(--ink-soft);
+  }
+
+  .scorebar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .scorebar .track{
+    flex:1;
+    max-width:160px;
+    height:5px;
+    background:var(--rule);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .scorebar .fill{
+    height:100%;
+    background:var(--red);
+  }
+  .card.level-low .scorebar .fill{ background:var(--teal); }
+  .card.level-moderate .scorebar .fill{ background:var(--amber); }
+
+  .scorebar .pct{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:500;
+    color:var(--ink);
+  }
+
+  /* ---------- Empty / loading ---------- */
+
+  .empty{
+    padding:48px 20px;
+    text-align:center;
+    border:1px dashed var(--rule);
+    border-radius:var(--radius);
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+
+  /* ---------- Footer ---------- */
+
+  footer{
+    margin-top:56px;
+    padding-top:20px;
+    border-top:1px solid var(--rule);
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  footer .caveat{
+    max-width:60ch;
+    margin-bottom:10px;
+  }
+
+  @media (max-width:520px){
+    header.masthead{ padding-top:36px; }
+    .stats{ flex-wrap:wrap; }
+    .stat{ flex:0 0 50%; border-right:none; margin-bottom:10px; }
+    .date{ margin-left:0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="kicker">Editorial monitoring · not a verdict</p>
+    <h1 class="title">Redline <span class="redline-mark">Watch</span></h1>
+    <p class="dek">Daily scan of newly published medical literature on <strong>PubMed</strong> and <strong>Zenodo</strong>, flagged for vocabulary patterns associated with AI-assisted drafting. Every flag here is a lead for a human editor to review — never proof of authorship.</p>
+
+    <div class="stats" id="statsRow">
+      <div class="stat"><div class="n" id="statScanned">—</div><div class="l">Scanned today</div></div>
+      <div class="stat"><div class="n" id="statFlagged">—</div><div class="l">Flagged</div></div>
+      <div class="stat"><div class="n" id="statSources">2</div><div class="l">Sources</div></div>
+    </div>
+
+    <div class="method">
+      Flags are based on <strong>population-level vocabulary drift</strong> documented in a 2025 peer-reviewed study tracking word-frequency shifts in PubMed abstracts after ChatGPT's release (Matsui, 2025 — <a href="https://doi.org/10.5334/pme.1929" target="_blank" rel="noopener">DOI 10.5334/pme.1929</a>), plus literal leftover chatbot boilerplate. Flagged items are cross-checked with a third-party AI-text detector for a second opinion. No available tool — including this one — can reliably identify which specific model wrote a passage.
+    </div>
+  </header>
+
+  <section class="feed">
+    <div class="feed-head">
+      <h2>Flagged articles</h2>
+      <div class="updated" id="updatedAt">loading…</div>
+    </div>
+
+    <div id="feedList">
+      <div class="empty">Loading results…</div>
+    </div>
+  </section>
+
+  <footer>
+    <p class="caveat">Redline Watch surfaces editorial leads for a human reviewer. A flag reflects statistical similarity to known AI-drafting patterns at the population level — it is not evidence about any individual author's process, and should never be treated as a finding on its own.</p>
+    <p>Sources: PubMed E-utilities, Zenodo REST API · Detection: vocabulary-drift scoring + Sapling AI (third-party, advisory only) · Updated daily at 07:00</p>
+  </footer>
+
+</div>
+
+<script>
+(async function(){
+  const listEl = document.getElementById('feedList');
+  const updatedEl = document.getElementById('updatedAt');
+  const scannedEl = document.getElementById('statScanned');
+  const flaggedEl = document.getElementById('statFlagged');
+
+  function levelFromScore(pct){
+    if (pct >= 66) return 'high';
+    if (pct >= 33) return 'moderate';
+    return 'low';
+  }
+
+  function labelFromLevel(level){
+    return level === 'high' ? 'High' : level === 'moderate' ? 'Moderate' : 'Low';
+  }
+
+  function escapeHtml(str){
+    return String(str ?? '').replace(/[&<>"']/g, m => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[m]));
+  }
+
+  function renderCard(item){
+    const pct = Math.round((item.score ?? item.aiScore ?? 0) * (item.score > 1 ? 1 : 100));
+    const level = levelFromScore(pct);
+    const signals = (item.signals || item.flaggedWords || []).slice(0, 6);
+    const date = item.date || item.published || '';
+    const source = item.source || 'Unknown source';
+    const title = item.title || 'Untitled record';
+    const link = item.link || item.url || '#';
+
+    return `
+      <article class="card level-${level}">
+        <div class="margin">
+          ${signals.slice(0,4).map(()=>'<span class="tick">✓</span>').join('') || '<span class="tick">—</span>'}
+        </div>
+        <div class="body">
+          <div class="row-top">
+            <span class="badge">${labelFromLevel(level)}</span>
+            <span class="source">${escapeHtml(source)}</span>
+            ${date ? `<span class="date">${escapeHtml(date)}</span>` : ''}
+          </div>
+          <h3 class="headline"><a href="${escapeHtml(link)}" target="_blank" rel="noopener">${escapeHtml(title)}</a></h3>
+          ${signals.length ? `<div class="signals">${signals.map(s => `<span class="signal">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
+          <div class="scorebar">
+            <span>Detector confidence</span>
+            <span class="track"><span class="fill" style="width:${pct}%"></span></span>
+            <span class="pct">${pct}%</span>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  try{
+    const res = await fetch('results.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('results.json not found (' + res.status + ')');
+    const data = await res.json();
+
+    const items = Array.isArray(data) ? data : (data.items || data.results || []);
+    const scanned = data.totalScanned ?? data.scanned ?? items.length;
+    const generatedAt = data.generatedAt || data.updated || null;
+
+    scannedEl.textContent = scanned;
+    flaggedEl.textContent = items.length;
+    updatedEl.textContent = generatedAt
+      ? 'Updated ' + new Date(generatedAt).toLocaleString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
+      : 'Updated recently';
+
+    if (!items.length){
+      listEl.innerHTML = '<div class="empty">No flagged records in the latest scan. That is a clean day — check back tomorrow at 7am.</div>';
+      return;
+    }
+
+    listEl.innerHTML = items.map(renderCard).join('');
+  } catch (err){
+    listEl.innerHTML = `<div class="empty">Couldn't load results.json yet.<br>This page will populate automatically once the daily workflow commits its first file.</div>`;
+    updatedEl.textContent = '—';
+    scannedEl.textContent = '0';
+    flaggedEl.textContent = '0';
+    console.error(err);
+  }
+})();
+</script>
+
+</body>
+</html>

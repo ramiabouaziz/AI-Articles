@@ -132,8 +132,8 @@
     <div id="demoBanner"></div>
 
     <div class="method">
-      <p><strong>How an article gets flagged.</strong> Two signals: <strong>vocabulary drift</strong>, the over-use of words that became far more common in biomedical writing after ChatGPT's release (Matsui, 2025, <a href="https://doi.org/10.5334/pme.1929" target="_blank" rel="noopener">DOI 10.5334/pme.1929</a>), and <strong>literal leftover chatbot phrases</strong>. No AI-detector service is used.</p>
-      <p><strong>Strong signal</strong> = a chatbot phrase, or an elevated vocabulary score (three or more strongly associated words at high density). <strong>Weak signal</strong> = a moderate vocabulary score (at least two such words). This is weak, population-level evidence and never proof that a text was written by AI.</p>
+      <p><strong>How an article gets flagged.</strong> Two main signals: <strong>vocabulary drift</strong>, the over-use of words that became far more common in biomedical writing after ChatGPT's release (Matsui, 2025, <a href="https://doi.org/10.5334/pme.1929" target="_blank" rel="noopener">DOI 10.5334/pme.1929</a>), and <strong>literal leftover chatbot phrases</strong>. A free open-source detector model also runs privately on the owner's computer. Its estimate can raise a moderate vocabulary signal to strong and is shown on a card only when that option is switched on. It is experimental and uncalibrated, and it is not a percentage of the text written by AI.</p>
+      <p><strong>Strong signal</strong> = a chatbot phrase, an elevated vocabulary score (three or more strongly associated words at high density), or a moderate vocabulary score together with a high detector estimate. <strong>Weak signal</strong> = a moderate vocabulary score (at least two such words). This is weak, population-level evidence and never proof that a text was written by AI.</p>
       <p><strong>Which model?</strong> This page does not try to say which AI tool wrote a text. No available method does that reliably.</p>
     </div>
   </header>
@@ -284,12 +284,13 @@ function renderCard(i){
   if (i.explicitHit) chips.push('chatbot phrase: “' + i.explicitHit + '”');
   (i.matched || []).slice(0, 6).forEach(m => chips.push(m));
   const vocab = '<div class="metric"><span class="lbl">Vocabulary drift</span><span class="val">' + esc(i.vocabLevel || 'none') + ' · ' + esc(i.vocabWeighted ?? 0) + ' per 100 words</span></div>';
+  const det = (typeof i.detectorScore === 'number') ? '<div class="metric"><span class="lbl">Detector estimate</span><span class="val">' + esc(i.detectorScore) + ' / 100 · experimental model, not a percentage of AI text</span></div>' : '';
   return '<article class="card tier-' + esc(tier) + '"><div class="margin" aria-hidden="true"></div><div class="body">' +
     '<div class="row-top"><span class="badge">' + esc(TIER_LABEL[tier] || tier) + '</span><span class="source">' + esc(i.source) + '</span>' +
     (i.date ? '<span class="date">' + esc(i.date) + '</span>' : '') + '</div>' +
     '<h3 class="headline"><a href="' + esc(safeUrl(i.link)) + '" target="_blank" rel="noopener">' + esc(i.title || 'Untitled record') + '</a></h3>' +
     (chips.length ? '<div class="signals">' + chips.map(c => '<span class="signal">' + esc(c) + '</span>').join('') + '</div>' : '') +
-    vocab +
+    vocab + det +
     '<div class="fine">A vocabulary score is a weak signal: formulaic, technical or non-native English writing can trigger false positives.</div>' +
     '</div></article>';
 }

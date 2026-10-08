@@ -1,5 +1,5 @@
 {
-  "name": "Redline Watch v2.1 - Medical literature + news AI-text screening (no detector)",
+  "name": "Redline Watch v2.2 - Medical literature + news AI-text screening",
   "nodes": [
     {
       "parameters": {
@@ -107,6 +107,18 @@
               "name": "guardianKey",
               "value": "PASTE_YOUR_GUARDIAN_KEY_HERE",
               "type": "string"
+            },
+            {
+              "id": "cfg8",
+              "name": "detectorUrl",
+              "value": "http://host.docker.internal:8000",
+              "type": "string"
+            },
+            {
+              "id": "cfg9",
+              "name": "publishDetectorScore",
+              "value": false,
+              "type": "boolean"
             }
           ]
         },
@@ -441,10 +453,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// Turn the vocabulary score into a tier. No external detector is used.\n//   strong = leftover chatbot phrase, or elevated vocabulary drift\n//   weak   = moderate vocabulary drift\n//   none   = everything else\nconst out = [];\nfor (const it of $input.all()) {\n  const j = it.json || {};\n  if (!j.link) continue;\n\n  let signal = 'none';\n  if (j.vocabLevel === 'explicit' || j.vocabLevel === 'elevated') signal = 'strong';\n  else if (j.vocabLevel === 'moderate') signal = 'weak';\n\n  const reasons = [];\n  if (j.explicitHit) reasons.push('Leftover chatbot phrase: \"' + j.explicitHit + '\"');\n  if (j.vocabLevel === 'moderate' || j.vocabLevel === 'elevated') {\n    reasons.push('Vocabulary drift (' + j.vocabLevel + '): ' + j.vocabStrong + ' strong word(s), weighted density ' + j.vocabWeighted + ' per 100 words');\n  }\n\n  out.push({\n    json: {\n      source: j.source,\n      sourceType: j.sourceType,\n      title: j.title,\n      journal: j.journal,\n      date: j.date,\n      link: j.link,\n      words: j.words,\n      tooShort: j.tooShort,\n      vocabLevel: j.vocabLevel,\n      vocabWeighted: j.vocabWeighted,\n      matched: j.matched,\n      explicitHit: j.explicitHit,\n      detectorScore: null,\n      detectorProvider: null,\n      signal,\n      reasons\n    }\n  });\n}\nreturn out;\n"
+        "jsCode": "// One request for the whole day: send every scoreable text to the local detector service.\nconst cfg = $('Config').first().json || {};\nconst base = String(cfg.detectorUrl || '').trim().replace(/\\/+$/, '');\n\nconst items = $input.all()\n  .map(i => i.json)\n  .filter(j => j && j.link && j.text && !j.tooShort)\n  .map(j => ({ id: j.link, text: String(j.text).slice(0, 6000) }));\n\nreturn [{ json: { url: base ? base + '/score' : '', count: items.length, payload: { items } } }];\n"
       },
-      "id": "dd9a7cc3-5213-565d-8ffa-5fa80c1e97ab",
-      "name": "Assign Tiers",
+      "id": "9ffc02e1-f16c-5381-b48d-370154f62943",
+      "name": "Build Detector Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -455,14 +467,65 @@
     },
     {
       "parameters": {
-        "jsCode": "// Merge today's results into the history file, update run statistics, and build the email.\nconst scored = $input.all().map(i => i.json || {}).filter(j => j.link);\n\nconst cfg = $('Config').first().json || {};\nconst retentionDays = Number(cfg.retentionDays) || 90;\nconst today = new Date().toISOString().slice(0, 10);\nconst cutoff = new Date(Date.now() - retentionDays * 86400000).toISOString().slice(0, 10);\n\nlet hist = {};\ntry { hist = $('Load history').first().json || {}; } catch (e) { hist = {}; }\nconst oldItems = Array.isArray(hist.items) ? hist.items : [];\nconst oldRuns = Array.isArray(hist.runs) ? hist.runs : [];\n\n// Only flagged articles are published. Unflagged articles are counted, not listed.\nconst flaggedNow = scored.filter(j => j.signal !== 'none');\n\nconst byLink = new Map();\noldItems.forEach(i => { if (i && i.link) byLink.set(i.link, i); });\nflaggedNow.forEach(j => {\n  if (!byLink.has(j.link)) {\n    const { tooShort, ...rest } = j;\n    byLink.set(j.link, { ...rest, firstSeen: today });\n  }\n});\n\nconst rank = { strong: 3, weak: 2, none: 1 };\nconst items = Array.from(byLink.values())\n  .filter(i => (i.firstSeen || today) >= cutoff)\n  .sort((a, b) =>\n    (rank[b.signal] - rank[a.signal]) ||\n    ((b.vocabWeighted ?? 0) - (a.vocabWeighted ?? 0)) ||\n    String(b.firstSeen).localeCompare(String(a.firstSeen))\n  );\n\nconst bySource = {};\nscored.forEach(j => { bySource[j.source] = (bySource[j.source] || 0) + 1; });\n\nconst run = {\n  date: today,\n  scanned: scored.length,\n  bySource,\n  tooShort: scored.filter(j => j.tooShort).length,\n  strong: items.filter(i => i.firstSeen === today && i.signal === 'strong').length,\n  weak: items.filter(i => i.firstSeen === today && i.signal === 'weak').length\n};\n\nconst runs = oldRuns.filter(r => r && r.date !== today).concat([run]).slice(-retentionDays);\n\nconst file = { schema: 2, generatedAt: new Date().toISOString(), lastRun: run, runs, items };\nconst fileContent = JSON.stringify(file, null, 1);\n\n// ---------- Email ----------\nfunction esc(s) {\n  return String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[m]));\n}\nconst todays = items.filter(i => i.firstSeen === today && i.signal !== 'none');\n\n// For tuning the thresholds: the highest vocabulary scores among articles that were NOT flagged.\nconst nearMiss = scored\n  .filter(j => j.signal === 'none' && !j.tooShort && j.vocabWeighted > 0)\n  .sort((a, b) => b.vocabWeighted - a.vocabWeighted)\n  .slice(0, 5);\n\nfunction row(i) {\n  const tier = i.signal === 'strong' ? 'STRONG' : i.signal === 'weak' ? 'WEAK' : 'NOT FLAGGED';\n  const col = i.signal === 'strong' ? '#B3261E' : i.signal === 'weak' ? '#9A6A0C' : '#666';\n  return '<tr>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd;color:' + col + ';font-weight:600;white-space:nowrap\">' + tier + '</td>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd\"><a href=\"' + esc(i.link) + '\">' + esc(i.title) + '</a><br><span style=\"color:#666;font-size:12px\">' + esc(i.source) + '</span></td>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd;text-align:right\">' + esc(i.vocabWeighted) + '</td>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd;font-size:12px\">' + esc((i.explicitHit ? '\"' + i.explicitHit + '\" ' : '') + (i.matched || []).join(', ')) + '</td>' +\n    '</tr>';\n}\nfunction table(list) {\n  return '<table style=\"border-collapse:collapse;width:100%;font-size:14px\"><tr style=\"text-align:left;color:#555\">' +\n    '<th style=\"padding:6px 8px\">Signal</th><th style=\"padding:6px 8px\">Article</th>' +\n    '<th style=\"padding:6px 8px;text-align:right\">Vocab /100w</th><th style=\"padding:6px 8px\">Matched</th></tr>' +\n    list.map(row).join('') + '</table>';\n}\n\nlet html = '<div style=\"font-family:Arial,sans-serif;max-width:720px;color:#1B2430\">' +\n  '<h2 style=\"margin:0 0 8px\">Redline Watch - ' + esc(today) + '</h2>' +\n  '<p style=\"margin:0 0 12px\">' + run.scanned + ' records scanned (' + (Object.keys(bySource).map(k => esc(k) + ' ' + bySource[k]).join(', ') || 'none') + '). ' +\n  run.tooShort + ' were too short to score. ' + run.strong + ' strong and ' + run.weak + ' weak signals today.</p>';\n\nif (run.scanned === 0) {\n  html += '<p style=\"color:#B3261E\"><b>No records were scanned.</b> A source or the search query is probably failing. Check the n8n execution log.</p>';\n}\nhtml += todays.length ? '<h3>Flagged today</h3>' + table(todays) : '<p>No flagged articles today.</p>';\nif (nearMiss.length) {\n  html += '<h3>Highest vocabulary scores that were not flagged</h3>' +\n    '<p style=\"color:#666;font-size:12px;margin:0 0 6px\">Shown only in this email, to help you tune the thresholds in vocab.json. They are not published.</p>' + table(nearMiss);\n}\n\nhtml += '<p style=\"margin-top:18px\"><a href=\"https://ramiabouaziz.github.io/AI-Articles/redline-watch.html\">Open the dashboard</a></p>' +\n  '<p style=\"color:#666;font-size:12px\">Signals come from vocabulary patterns and leftover chatbot phrases only; no AI detector is used. This is weak, population-level evidence. Short, formulaic or non-native English text can trigger false positives, and a clean result does not rule out AI assistance. These are leads for a human reviewer, not proof of authorship.</p></div>';\n\nconst subject = 'Redline Watch - ' + (run.strong + run.weak) + ' flagged of ' + run.scanned + ' scanned (' + today + ')';\n\nreturn [{ json: { fileContent, subject, html, flaggedToday: todays.length, scanned: run.scanned } }];\n"
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "id": "245a81f3-a2d7-5bd9-986f-281566576b14",
+      "name": "Detector: score texts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2912,
+        0
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Put the detector score on each scored item. If the detector is off or failed, scores stay null\n// and the rest of the workflow works exactly as before.\nconst resp = ($input.first() && $input.first().json) || {};\nconst byId = {};\nif (Array.isArray(resp.results)) {\n  resp.results.forEach(r => {\n    const n = Number(r && r.score);\n    if (r && r.id && r.score !== null && r.score !== undefined && Number.isFinite(n)) byId[r.id] = n;\n  });\n}\n\nconst out = [];\nfor (const it of $('Prepare & Score').all()) {\n  const j = it.json || {};\n  if (!j.link) continue;\n  out.push({ json: { ...j, detectorScoreRaw: Object.prototype.hasOwnProperty.call(byId, j.link) ? byId[j.link] : null } });\n}\nreturn out;\n"
+      },
+      "id": "d6769f72-f0b5-574e-96b2-c75ca67e107f",
+      "name": "Attach Detector Scores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3136,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turn the signals into a tier.\n//   strong = chatbot phrase, or elevated vocabulary drift, or moderate vocabulary drift + high detector estimate\n//   weak   = moderate vocabulary drift\n//   none   = everything else\n// A high detector estimate on its own is never enough to publish an article, unless\n// publishDetectorScore is switched on in Config (then it becomes a weak signal).\nconst cfg = $('Config').first().json || {};\nconst truthy = v => v === true || String(v).toLowerCase() === 'true';\nconst publishScore = truthy(cfg.publishDetectorScore);\n\nlet detHigh = 85;\ntry {\n  const v = $('Load vocab.json').first().json;\n  const n = Number(v && v.thresholds && v.thresholds.detectorHigh);\n  if (Number.isFinite(n) && n > 0) detHigh = n;\n} catch (e) { /* keep default */ }\n\nconst out = [];\nfor (const it of $input.all()) {\n  const j = it.json || {};\n  if (!j.link) continue;\n\n  const raw = (j.detectorScoreRaw === null || j.detectorScoreRaw === undefined) ? null : Number(j.detectorScoreRaw);\n  const detHighHit = raw !== null && Number.isFinite(raw) && raw >= detHigh;\n  const vocabFlag = j.vocabLevel === 'moderate' || j.vocabLevel === 'elevated';\n\n  let signal = 'none';\n  if (j.vocabLevel === 'explicit' || j.vocabLevel === 'elevated' || (vocabFlag && detHighHit)) signal = 'strong';\n  else if (vocabFlag) signal = 'weak';\n  else if (detHighHit && publishScore) signal = 'weak';\n\n  const detectorOnly = detHighHit && !vocabFlag && j.vocabLevel !== 'explicit';\n\n  const reasons = [];\n  if (j.explicitHit) reasons.push('Leftover chatbot phrase: \"' + j.explicitHit + '\"');\n  if (vocabFlag) {\n    reasons.push('Vocabulary drift (' + j.vocabLevel + '): ' + j.vocabStrong + ' strong word(s), weighted density ' + j.vocabWeighted + ' per 100 words');\n  }\n  const showScore = publishScore && raw !== null;\n  if (showScore) reasons.push('Detector estimate ' + Math.round(raw) + '/100 (experimental, uncalibrated)');\n\n  out.push({\n    json: {\n      source: j.source,\n      sourceType: j.sourceType,\n      title: j.title,\n      journal: j.journal,\n      date: j.date,\n      link: j.link,\n      words: j.words,\n      tooShort: j.tooShort,\n      vocabLevel: j.vocabLevel,\n      vocabWeighted: j.vocabWeighted,\n      matched: j.matched,\n      explicitHit: j.explicitHit,\n      detectorScore: showScore ? Math.round(raw) : null,\n      detectorProvider: showScore ? 'local-model' : null,\n      detectorScoreRaw: raw,       // private: email only, removed before anything is published\n      detectorOnly,                // private\n      signal,\n      reasons\n    }\n  });\n}\nreturn out;\n"
+      },
+      "id": "dd9a7cc3-5213-565d-8ffa-5fa80c1e97ab",
+      "name": "Assign Tiers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge today's results into the history file, update run statistics, and build the email.\nconst scored = $input.all().map(i => i.json || {}).filter(j => j.link);\n\nconst cfg = $('Config').first().json || {};\nconst retentionDays = Number(cfg.retentionDays) || 90;\nconst today = new Date().toISOString().slice(0, 10);\nconst cutoff = new Date(Date.now() - retentionDays * 86400000).toISOString().slice(0, 10);\n\nlet hist = {};\ntry { hist = $('Load history').first().json || {}; } catch (e) { hist = {}; }\nconst oldItems = Array.isArray(hist.items) ? hist.items : [];\nconst oldRuns = Array.isArray(hist.runs) ? hist.runs : [];\n\n// Only flagged articles are published. Unflagged articles are counted, not listed.\nconst flaggedNow = scored.filter(j => j.signal !== 'none');\n\nconst byLink = new Map();\noldItems.forEach(i => { if (i && i.link) byLink.set(i.link, i); });\nflaggedNow.forEach(j => {\n  if (!byLink.has(j.link)) {\n    const { tooShort, detectorScoreRaw, detectorOnly, ...rest } = j;\n    byLink.set(j.link, { ...rest, firstSeen: today });\n  }\n});\n\nconst rank = { strong: 3, weak: 2, none: 1 };\nconst items = Array.from(byLink.values())\n  .filter(i => (i.firstSeen || today) >= cutoff)\n  .sort((a, b) =>\n    (rank[b.signal] - rank[a.signal]) ||\n    ((b.vocabWeighted ?? 0) - (a.vocabWeighted ?? 0)) ||\n    String(b.firstSeen).localeCompare(String(a.firstSeen))\n  );\n\nconst bySource = {};\nscored.forEach(j => { bySource[j.source] = (bySource[j.source] || 0) + 1; });\n\nconst detScored = scored.filter(j => j.detectorScoreRaw !== null && j.detectorScoreRaw !== undefined);\nconst detCandidates = scored.filter(j => !j.tooShort).length;\n\nconst run = {\n  date: today,\n  scanned: scored.length,\n  bySource,\n  tooShort: scored.filter(j => j.tooShort).length,\n  detectorChecked: detScored.length,\n  strong: items.filter(i => i.firstSeen === today && i.signal === 'strong').length,\n  weak: items.filter(i => i.firstSeen === today && i.signal === 'weak').length\n};\n\nconst runs = oldRuns.filter(r => r && r.date !== today).concat([run]).slice(-retentionDays);\n\nconst file = { schema: 2, generatedAt: new Date().toISOString(), lastRun: run, runs, items };\nconst fileContent = JSON.stringify(file, null, 1);\n\n// ---------- Email ----------\nfunction esc(s) {\n  return String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[m]));\n}\nconst todays = items.filter(i => i.firstSeen === today && i.signal !== 'none');\n\n// For tuning the thresholds: the highest vocabulary scores among articles that were NOT flagged.\nconst nearMiss = scored\n  .filter(j => j.signal === 'none' && !j.tooShort && j.vocabWeighted > 0)\n  .sort((a, b) => b.vocabWeighted - a.vocabWeighted)\n  .slice(0, 5);\n\n// Detector estimates are private: they only ever appear in this email.\nconst detTop = detScored.slice().sort((a, b) => b.detectorScoreRaw - a.detectorScoreRaw).slice(0, 8);\nconst detOnlyCount = scored.filter(j => j.detectorOnly).length;\nfunction detCell(i) {\n  return (i.detectorScoreRaw === null || i.detectorScoreRaw === undefined) ? '-' : Math.round(i.detectorScoreRaw);\n}\n\nfunction row(i) {\n  const tier = i.signal === 'strong' ? 'STRONG' : i.signal === 'weak' ? 'WEAK' : 'NOT FLAGGED';\n  const col = i.signal === 'strong' ? '#B3261E' : i.signal === 'weak' ? '#9A6A0C' : '#666';\n  return '<tr>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd;color:' + col + ';font-weight:600;white-space:nowrap\">' + tier + '</td>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd\"><a href=\"' + esc(i.link) + '\">' + esc(i.title) + '</a><br><span style=\"color:#666;font-size:12px\">' + esc(i.source) + '</span></td>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd;text-align:right\">' + esc(i.vocabWeighted) + '</td>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd;text-align:right\">' + esc(detCell(i)) + '</td>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd;font-size:12px\">' + esc((i.explicitHit ? '\"' + i.explicitHit + '\" ' : '') + (i.matched || []).join(', ')) + '</td>' +\n    '</tr>';\n}\nfunction table(list) {\n  return '<table style=\"border-collapse:collapse;width:100%;font-size:14px\"><tr style=\"text-align:left;color:#555\">' +\n    '<th style=\"padding:6px 8px\">Signal</th><th style=\"padding:6px 8px\">Article</th>' +\n    '<th style=\"padding:6px 8px;text-align:right\">Vocab /100w</th><th style=\"padding:6px 8px;text-align:right\">Detector</th><th style=\"padding:6px 8px\">Matched</th></tr>' +\n    list.map(row).join('') + '</table>';\n}\n\nlet html = '<div style=\"font-family:Arial,sans-serif;max-width:720px;color:#1B2430\">' +\n  '<h2 style=\"margin:0 0 8px\">Redline Watch - ' + esc(today) + '</h2>' +\n  '<p style=\"margin:0 0 12px\">' + run.scanned + ' records scanned (' + (Object.keys(bySource).map(k => esc(k) + ' ' + bySource[k]).join(', ') || 'none') + '). ' +\n  run.tooShort + ' were too short to score. ' + run.strong + ' strong and ' + run.weak + ' weak signals today.</p>';\n\nif (run.scanned === 0) {\n  html += '<p style=\"color:#B3261E\"><b>No records were scanned.</b> A source or the search query is probably failing. Check the n8n execution log.</p>';\n}\nif (detCandidates > 0 && detScored.length === 0) {\n  html += '<p style=\"color:#9A6A0C\"><b>The AI detector did not answer today</b>, so only vocabulary signals were used. Check that the detector container is running and that detectorUrl in the Config node is right.</p>';\n} else if (detScored.length > 0) {\n  html += '<p style=\"margin:0 0 12px\">Detector scored ' + detScored.length + ' of ' + detCandidates + ' scoreable records; ' + detOnlyCount + ' had a high estimate without any vocabulary signal.</p>';\n}\nhtml += todays.length ? '<h3>Flagged today</h3>' + table(todays) : '<p>No flagged articles today.</p>';\nif (nearMiss.length) {\n  html += '<h3>Highest vocabulary scores that were not flagged</h3>' +\n    '<p style=\"color:#666;font-size:12px;margin:0 0 6px\">Shown only in this email, to help you tune the thresholds in vocab.json. They are not published.</p>' + table(nearMiss);\n}\n\nif (detTop.length) {\n  html += '<h3>Highest detector estimates</h3>' +\n    '<p style=\"color:#666;font-size:12px;margin:0 0 6px\">Email only, never published. Estimate = the model\\'s probability (0-100) that a text is AI-generated. It is not the share of the text written by AI, and it is not calibrated.</p>' +\n    '<table style=\"border-collapse:collapse;width:100%;font-size:14px\"><tr style=\"text-align:left;color:#555\"><th style=\"padding:6px 8px;text-align:right\">Detector</th><th style=\"padding:6px 8px\">Article</th><th style=\"padding:6px 8px\">Tier</th></tr>' +\n    detTop.map(i => '<tr><td style=\"padding:6px 8px;border-bottom:1px solid #ddd;text-align:right\">' + esc(detCell(i)) + '</td>' +\n      '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd\"><a href=\"' + esc(i.link) + '\">' + esc(i.title) + '</a><br><span style=\"color:#666;font-size:12px\">' + esc(i.source) + '</span></td>' +\n      '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd\">' + esc(i.signal === 'none' ? 'not flagged' : i.signal) + '</td></tr>').join('') + '</table>';\n}\n\nhtml += '<p style=\"margin-top:18px\"><a href=\"https://ramiabouaziz.github.io/AI-Articles/redline-watch.html\">Open the dashboard</a></p>' +\n  '<p style=\"color:#666;font-size:12px\">Signals come from vocabulary patterns, leftover chatbot phrases and, when it is running, a local open-source detector model whose estimate is experimental and uncalibrated. This is weak evidence. Short, formulaic or non-native English text can trigger false positives, and a clean result does not rule out AI assistance. These are leads for a human reviewer, not proof of authorship.</p></div>';\n\nconst subject = 'Redline Watch - ' + (run.strong + run.weak) + ' flagged of ' + run.scanned + ' scanned (' + today + ')';\n\nreturn [{ json: { fileContent, subject, html, flaggedToday: todays.length, scanned: run.scanned } }];\n"
       },
       "id": "613cf5b8-31f9-53d4-9cf2-4cdae2f585ef",
       "name": "Merge History + Build Outputs",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2912,
+        3584,
         0
       ],
       "alwaysOutputData": true
@@ -490,7 +553,7 @@
       "type": "n8n-nodes-base.github",
       "typeVersion": 1,
       "position": [
-        3136,
+        3808,
         -100
       ],
       "credentials": {
@@ -513,7 +576,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        3136,
+        3808,
         100
       ],
       "credentials": {
@@ -525,7 +588,7 @@
     },
     {
       "parameters": {
-        "content": "## Redline Watch v2.1 - setup (no AI detector)\n\n**1. Guardian key:** open the `Config` node and paste your key over `PASTE_YOUR_GUARDIAN_KEY_HERE` (free at open-platform.theguardian.com). Do not export or commit this workflow afterwards: the key would be inside it.\n\n**2. Searches:** also in `Config` (PubMed / Zenodo / Guardian queries, retention days).\n\n**3. Word list and thresholds** live in `vocab.json` in the repo and are loaded on every run.\n\n**4. GitHub and Gmail:** select your existing credentials if a node shows a warning.\n\n**First test:** click Execute workflow once, check the email arrives and `results.json` gets a new commit. Then activate.\n\nSignals come from vocabulary patterns and chatbot phrases only. No AI detector is used.",
+        "content": "## Redline Watch v2.2 - setup\n\n**1. Guardian key:** open the `Config` node and paste your key over `PASTE_YOUR_GUARDIAN_KEY_HERE` (free at open-platform.theguardian.com). Do not export or commit this workflow afterwards: the key would be inside it.\n\n**2. Detector (free, runs on your own PC):** start the container from the `detector` folder (`docker compose up -d --build`, see detector/README.md). Then set `detectorUrl` in `Config`: `http://host.docker.internal:8000` if n8n runs in Docker, `http://localhost:8000` if it does not. Leave it empty to run without the detector.\n\n**3. Privacy:** detector estimates only go into the daily email. Set `publishDetectorScore` to true only if you want them (and detector-only hits) on the public site.\n\n**4. Word list and thresholds** live in `vocab.json` in the repo and are loaded on every run.\n\n**5. GitHub and Gmail:** select your existing credentials on those two nodes.\n\n**First test:** click Execute workflow once, check the email arrives and `results.json` gets a new commit. Then activate.",
         "height": 380,
         "width": 520
       },
@@ -735,6 +798,39 @@
       ]
     },
     "Prepare & Score": {
+      "main": [
+        [
+          {
+            "node": "Build Detector Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Detector Request": {
+      "main": [
+        [
+          {
+            "node": "Detector: score texts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detector: score texts": {
+      "main": [
+        [
+          {
+            "node": "Attach Detector Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Detector Scores": {
       "main": [
         [
           {

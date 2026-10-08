@@ -9,703 +9,425 @@
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper: #EEF1F0;
-    --paper-card: #F8FAF9;
-    --ink: #1B2430;
-    --ink-soft: #4B5563;
-    --rule: #C7CDC9;
-    --red: #B3261E;
-    --red-soft: #F4DEDC;
-    --amber: #9A6A0C;
-    --amber-soft: #F3E6C9;
-    --teal: #1F6E63;
-    --teal-soft: #DCEBE7;
-    --radius: 3px;
+    --paper:#EEF1F0; --paper-card:#F8FAF9; --ink:#1B2430; --ink-soft:#4B5563; --rule:#C7CDC9;
+    --red:#B3261E; --red-soft:#F4DEDC; --amber:#9A6A0C; --amber-soft:#F3E6C9; --teal:#1F6E63; --teal-soft:#DCEBE7;
+    --radius:3px;
   }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px 96px}
 
-  * { box-sizing: border-box; }
+  header.masthead{padding:56px 0 28px;border-bottom:3px solid var(--ink)}
+  .kicker{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin:0 0 10px}
+  h1.title{font-family:'Newsreader',serif;font-weight:600;font-size:clamp(40px,7vw,64px);line-height:.98;margin:0 0 14px;letter-spacing:-.01em}
+  h1.title .redline-mark{position:relative;display:inline-block}
+  h1.title .redline-mark::after{content:'';position:absolute;left:-2%;right:-2%;top:38%;height:3px;background:var(--red);transform:scaleX(0);transform-origin:left;animation:strike .7s .3s ease-out forwards}
+  @keyframes strike{to{transform:scaleX(1)}}
+  .dek{font-size:16px;color:var(--ink-soft);max-width:60ch;margin:0}
+  .dek strong{color:var(--ink);font-weight:600}
 
-  html { scroll-behavior: smooth; }
+  .stats{display:flex;margin-top:26px;border-top:1px solid var(--rule)}
+  .stat{flex:1;padding:14px 0 0;border-right:1px solid var(--rule);padding-left:14px}
+  .stat:first-child{padding-left:0}
+  .stat:last-child{border-right:none}
+  .stat .n{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:500}
+  .stat .l{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-top:2px}
 
-  body{
-    margin:0;
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'IBM Plex Sans', sans-serif;
-    line-height:1.5;
-    -webkit-font-smoothing:antialiased;
-  }
+  .demo-banner{margin-top:18px;padding:10px 14px;background:var(--amber-soft);border:1px solid var(--amber);border-radius:var(--radius);font-size:13px;color:var(--ink)}
 
-  @media (prefers-reduced-motion: reduce){
-    * { animation:none !important; transition:none !important; scroll-behavior:auto !important; }
-  }
+  .method{margin:28px 0 0;padding:14px 16px;background:var(--paper-card);border:1px solid var(--rule);border-radius:var(--radius);font-size:13px;color:var(--ink-soft)}
+  .method p{margin:0 0 8px}
+  .method p:last-child{margin:0}
+  .method strong{color:var(--ink)}
+  .method a{text-decoration:underline;text-decoration-color:var(--rule)}
 
-  a { color:inherit; }
+  .trend{margin-top:28px}
+  .trend h2,.feed-head h2{font-family:'Newsreader',serif;font-size:20px;font-weight:600;margin:0}
+  .trend svg{display:block;width:100%;height:64px;margin-top:10px}
+  .trend .cap{font-size:12px;color:var(--ink-soft);margin-top:4px}
 
-  .wrap{
-    max-width:820px;
-    margin:0 auto;
-    padding:0 24px 96px;
-  }
+  .feed{margin-top:40px}
+  .feed-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;gap:12px;flex-wrap:wrap}
+  .updated{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft)}
 
-  /* ---------- Masthead ---------- */
+  .filters{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-bottom:16px}
+  .seg{display:flex;border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;background:var(--paper-card)}
+  .seg button{font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.03em;padding:7px 11px;border:0;border-right:1px solid var(--rule);background:transparent;color:var(--ink-soft);cursor:pointer}
+  .seg button:last-child{border-right:0}
+  .seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+  .filters input[type=search]{font:14px 'IBM Plex Sans',sans-serif;padding:7px 10px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-card);color:var(--ink);min-width:180px;flex:1}
+  .filters select{font:13px 'IBM Plex Sans',sans-serif;padding:7px 8px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-card);color:var(--ink)}
 
-  header.masthead{
-    padding:56px 0 28px;
-    border-bottom:3px solid var(--ink);
-  }
+  .card{display:grid;grid-template-columns:34px 1fr;background:var(--paper-card);border:1px solid var(--rule);border-radius:var(--radius);margin-bottom:14px;overflow:hidden}
+  .margin{background:var(--red-soft);border-right:1px solid var(--rule)}
+  .card.tier-weak .margin{background:var(--amber-soft)}
+  .card.tier-none .margin{background:var(--teal-soft)}
+  .body{padding:16px 18px 18px;min-width:0}
+  .row-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:2px;background:var(--red);color:#fff}
+  .card.tier-weak .badge{background:var(--amber)}
+  .card.tier-none .badge{background:var(--teal)}
+  .source,.date{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft)}
+  .date{margin-left:auto}
+  h3.headline{font-family:'Newsreader',serif;font-size:19px;font-weight:500;line-height:1.28;margin:0 0 10px;overflow-wrap:anywhere}
+  h3.headline a{text-decoration:none}
+  h3.headline a:hover{text-decoration:underline;text-decoration-color:var(--red)}
+  .signals{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .signal{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:2px 7px;border:1px solid var(--rule);border-radius:2px;color:var(--ink-soft)}
+  .metric{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);margin-top:4px}
+  .metric .lbl{min-width:132px}
+  .track{flex:1;max-width:160px;height:5px;background:var(--rule);border-radius:3px;overflow:hidden}
+  .fill{display:block;height:100%;background:var(--ink-soft)}
+  .card.tier-strong .fill{background:var(--red)}
+  .card.tier-weak .fill{background:var(--amber)}
+  .card.tier-none .fill{background:var(--teal)}
+  .val{font-family:'IBM Plex Mono',monospace;font-weight:500;color:var(--ink)}
+  .fine{font-size:11.5px;color:var(--ink-soft);margin-top:8px}
 
-  .kicker{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12px;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    color:var(--red);
-    margin:0 0 10px;
-  }
+  .empty{padding:44px 20px;text-align:center;border:1px dashed var(--rule);border-radius:var(--radius);color:var(--ink-soft);font-size:14px}
 
-  h1.title{
-    font-family:'Newsreader', serif;
-    font-weight:600;
-    font-size:clamp(40px, 7vw, 64px);
-    line-height:.98;
-    margin:0 0 14px;
-    letter-spacing:-0.01em;
-  }
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--rule);font-size:12px;color:var(--ink-soft)}
+  footer .caveat{max-width:64ch;margin-bottom:10px}
 
-  h1.title .redline-mark{
-    position:relative;
-    display:inline-block;
-  }
-  h1.title .redline-mark::after{
-    content:'';
-    position:absolute;
-    left:-2%; right:-2%; top:38%;
-    height:3px;
-    background:var(--red);
-    transform:scaleX(0);
-    transform-origin:left;
-    animation:strike .7s .3s ease-out forwards;
-  }
-  @keyframes strike{ to { transform:scaleX(1); } }
+  .checker{margin-top:56px;padding-top:36px;border-top:3px solid var(--ink)}
+  .checker h2{font-family:'Newsreader',serif;font-size:26px;font-weight:600;margin:0 0 6px}
+  .checker .sub{font-size:14px;color:var(--ink-soft);max-width:60ch;margin:0 0 4px}
+  .checker-privacy{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal);margin:0 0 18px}
+  textarea#checkerInput{width:100%;min-height:180px;resize:vertical;padding:14px 16px;font:14px/1.5 'IBM Plex Sans',sans-serif;color:var(--ink);background:var(--paper-card);border:1px solid var(--rule);border-radius:var(--radius)}
+  textarea#checkerInput:focus{outline:none;border-color:var(--red)}
+  .checker-controls{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap}
+  #checkerBtn{font:13px 'IBM Plex Mono',monospace;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:var(--red);border:none;padding:11px 20px;border-radius:var(--radius);cursor:pointer}
+  #checkerBtn:hover{background:#96201a}
+  .checker-wordcount{font:12px 'IBM Plex Mono',monospace;color:var(--ink-soft)}
+  .checker-result{margin-top:22px}
+  .checker-caveat{margin-top:14px;padding:12px 14px;background:var(--paper-card);border:1px solid var(--rule);border-radius:var(--radius);font-size:12.5px;color:var(--ink-soft)}
 
-  .dek{
-    font-size:16px;
-    color:var(--ink-soft);
-    max-width:56ch;
-    margin:0;
-  }
-
-  .dek strong{ color:var(--ink); font-weight:600; }
-
-  /* ---------- Stat strip ---------- */
-
-  .stats{
-    display:flex;
-    gap:0;
-    margin-top:26px;
-    border-top:1px solid var(--rule);
-  }
-  .stat{
-    flex:1;
-    padding:14px 0 0;
-    border-right:1px solid var(--rule);
-  }
-  .stat:last-child{ border-right:none; }
-  .stat .n{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:26px;
-    font-weight:500;
-  }
-  .stat .l{
-    font-size:11px;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    color:var(--ink-soft);
-    margin-top:2px;
-  }
-
-  /* ---------- Method note ---------- */
-
-  .method{
-    margin:28px 0 0;
-    padding:14px 16px;
-    background:var(--paper-card);
-    border:1px solid var(--rule);
-    border-radius:var(--radius);
-    font-size:13px;
-    color:var(--ink-soft);
-  }
-  .method a { text-decoration:underline; text-decoration-color:var(--rule); }
-  .method strong { color:var(--ink); }
-
-  /* ---------- Feed ---------- */
-
-  .feed{ margin-top:44px; }
-
-  .feed-head{
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    margin-bottom:18px;
-  }
-  .feed-head h2{
-    font-family:'Newsreader', serif;
-    font-size:20px;
-    font-weight:600;
-    margin:0;
-  }
-  .feed-head .updated{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    color:var(--ink-soft);
-  }
-
-  .card{
-    display:grid;
-    grid-template-columns:34px 1fr;
-    background:var(--paper-card);
-    border:1px solid var(--rule);
-    border-radius:var(--radius);
-    margin-bottom:14px;
-    overflow:hidden;
-  }
-
-  .margin{
-    background:var(--red-soft);
-    border-right:1px solid var(--rule);
-    padding:16px 0;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:10px;
-  }
-  .card.level-low .margin{ background:var(--teal-soft); }
-  .card.level-moderate .margin{ background:var(--amber-soft); }
-  .card.level-high .margin{ background:var(--red-soft); }
-
-  .margin .tick{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:10px;
-    color:var(--red);
-    transform:rotate(-6deg);
-  }
-  .card.level-low .margin .tick{ color:var(--teal); }
-  .card.level-moderate .margin .tick{ color:var(--amber); }
-
-  .body{ padding:16px 18px 18px; }
-
-  .row-top{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin-bottom:8px;
-    flex-wrap:wrap;
-  }
-
-  .badge{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:10px;
-    letter-spacing:.06em;
-    text-transform:uppercase;
-    padding:3px 7px;
-    border-radius:2px;
-    background:var(--red);
-    color:#fff;
-  }
-  .card.level-low .badge{ background:var(--teal); }
-  .card.level-moderate .badge{ background:var(--amber); }
-
-  .source{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    color:var(--ink-soft);
-  }
-
-  .date{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    color:var(--ink-soft);
-    margin-left:auto;
-  }
-
-  h3.headline{
-    font-family:'Newsreader', serif;
-    font-size:19px;
-    font-weight:500;
-    line-height:1.28;
-    margin:0 0 10px;
-  }
-  h3.headline a{ text-decoration:none; }
-  h3.headline a:hover{ text-decoration:underline; text-decoration-color:var(--red); }
-
-  .signals{
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px;
-    margin-bottom:10px;
-  }
-  .signal{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    padding:2px 7px;
-    border:1px solid var(--rule);
-    border-radius:2px;
-    color:var(--ink-soft);
-  }
-
-  .scorebar{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    font-size:12px;
-    color:var(--ink-soft);
-  }
-  .scorebar .track{
-    flex:1;
-    max-width:160px;
-    height:5px;
-    background:var(--rule);
-    border-radius:3px;
-    overflow:hidden;
-  }
-  .scorebar .fill{
-    height:100%;
-    background:var(--red);
-  }
-  .card.level-low .scorebar .fill{ background:var(--teal); }
-  .card.level-moderate .scorebar .fill{ background:var(--amber); }
-
-  .scorebar .pct{
-    font-family:'IBM Plex Mono', monospace;
-    font-weight:500;
-    color:var(--ink);
-  }
-
-  /* ---------- Empty / loading ---------- */
-
-  .empty{
-    padding:48px 20px;
-    text-align:center;
-    border:1px dashed var(--rule);
-    border-radius:var(--radius);
-    color:var(--ink-soft);
-    font-size:14px;
-  }
-
-  /* ---------- Footer ---------- */
-
-  footer{
-    margin-top:56px;
-    padding-top:20px;
-    border-top:1px solid var(--rule);
-    font-size:12px;
-    color:var(--ink-soft);
-  }
-  footer .caveat{
-    max-width:60ch;
-    margin-bottom:10px;
-  }
-
-  @media (max-width:520px){
-    header.masthead{ padding-top:36px; }
-    .stats{ flex-wrap:wrap; }
-    .stat{ flex:0 0 50%; border-right:none; margin-bottom:10px; }
-    .date{ margin-left:0; }
-  }
-
-  /* ---------- Checker tool ---------- */
-
-  .checker{
-    margin-top:56px;
-    padding-top:36px;
-    border-top:3px solid var(--ink);
-  }
-
-  .checker-head h2{
-    font-family:'Newsreader', serif;
-    font-size:26px;
-    font-weight:600;
-    margin:0 0 6px;
-  }
-
-  .checker-head .sub{
-    font-size:14px;
-    color:var(--ink-soft);
-    max-width:60ch;
-    margin:0 0 4px;
-  }
-
-  .checker-privacy{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    color:var(--teal);
-    margin:0 0 18px;
-  }
-
-  textarea#checkerInput{
-    width:100%;
-    min-height:180px;
-    resize:vertical;
-    padding:14px 16px;
-    font-family:'IBM Plex Sans', sans-serif;
-    font-size:14px;
-    line-height:1.5;
-    color:var(--ink);
-    background:var(--paper-card);
-    border:1px solid var(--rule);
-    border-radius:var(--radius);
-    box-sizing:border-box;
-  }
-  textarea#checkerInput:focus{
-    outline:none;
-    border-color:var(--red);
-  }
-
-  .checker-controls{
-    display:flex;
-    align-items:center;
-    gap:14px;
-    margin-top:12px;
-    flex-wrap:wrap;
-  }
-
-  #checkerBtn{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:13px;
-    letter-spacing:.04em;
-    text-transform:uppercase;
-    color:#fff;
-    background:var(--red);
-    border:none;
-    padding:11px 20px;
-    border-radius:var(--radius);
-    cursor:pointer;
-  }
-  #checkerBtn:hover{ background:#96201a; }
-  #checkerBtn:disabled{ background:var(--rule); cursor:not-allowed; }
-
-  .checker-wordcount{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12px;
-    color:var(--ink-soft);
-  }
-
-  .checker-result{
-    margin-top:22px;
-  }
-
-  .checker-result .card{
-    grid-template-columns:34px 1fr;
-  }
-
-  .checker-caveat{
-    margin-top:14px;
-    padding:12px 14px;
-    background:var(--paper-card);
-    border:1px solid var(--rule);
-    border-radius:var(--radius);
-    font-size:12.5px;
-    color:var(--ink-soft);
-  }
-
-  .highlight-list{
-    margin-top:2px;
+  @media (max-width:560px){
+    header.masthead{padding-top:36px}
+    .stats{flex-wrap:wrap}
+    .stat{flex:0 0 50%;border-right:none;padding-left:0;margin-bottom:10px}
+    .date{margin-left:0}
+    .metric .lbl{min-width:0}
   }
 </style>
 </head>
 <body>
-
 <div class="wrap">
 
   <header class="masthead">
     <p class="kicker">Editorial monitoring · not a verdict</p>
     <h1 class="title">Redline <span class="redline-mark">Watch</span></h1>
-    <p class="dek">Daily scan of newly published medical literature on <strong>PubMed</strong> and <strong>Zenodo</strong>, flagged for vocabulary patterns associated with AI-assisted drafting. Every flag here is a lead for a human editor to review — never proof of authorship.</p>
+    <p class="dek">Daily scan of newly published medical literature on <strong>PubMed</strong> and <strong>Zenodo</strong>, plus health reporting from <strong>The Guardian</strong>, screened for signs of AI-assisted drafting. Every flag is a lead for a human editor to review, never proof of authorship.</p>
 
-    <div class="stats" id="statsRow">
-      <div class="stat"><div class="n" id="statScanned">—</div><div class="l">Scanned today</div></div>
-      <div class="stat"><div class="n" id="statFlagged">—</div><div class="l">Flagged</div></div>
-      <div class="stat"><div class="n" id="statSources">2</div><div class="l">Sources</div></div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="statDate">—</div><div class="l">Last scan</div></div>
+      <div class="stat"><div class="n" id="statScanned">—</div><div class="l">Scanned</div></div>
+      <div class="stat"><div class="n" id="statChecked">—</div><div class="l">Detector-checked</div></div>
+      <div class="stat"><div class="n" id="statFlagged">—</div><div class="l">Flagged (kept 90 days)</div></div>
     </div>
+    <div id="demoBanner"></div>
 
     <div class="method">
-      Flags are based on <strong>population-level vocabulary drift</strong> documented in a 2025 peer-reviewed study tracking word-frequency shifts in PubMed abstracts after ChatGPT's release (Matsui, 2025 — <a href="https://doi.org/10.5334/pme.1929" target="_blank" rel="noopener">DOI 10.5334/pme.1929</a>), plus literal leftover chatbot boilerplate. Flagged items are cross-checked with a third-party AI-text detector for a second opinion. No available tool — including this one — can reliably identify which specific model wrote a passage.
+      <p><strong>How an article gets flagged.</strong> Two independent signals: (1) <strong>vocabulary drift</strong>, the over-use of words that became far more common in biomedical writing after ChatGPT's release (Matsui, 2025, <a href="https://doi.org/10.5334/pme.1929" target="_blank" rel="noopener">DOI 10.5334/pme.1929</a>), plus literal leftover chatbot phrases; and (2) a third-party <strong>AI-text detector</strong> (Sapling) run on a daily sample.</p>
+      <p><strong>Strong signal</strong> = a chatbot phrase, or both signals agree. <strong>Weak signal</strong> = only one fired. A detector score is a model's estimate for the text it saw, <strong>not the share of an article written by AI</strong>.</p>
+      <p><strong>Which model?</strong> This page does not try to say which AI tool wrote a text. No available method does that reliably.</p>
     </div>
   </header>
 
+  <section class="trend" id="trendSection" hidden>
+    <h2>Flags per day</h2>
+    <div id="trendChart"></div>
+    <div class="cap" id="trendCap"></div>
+  </section>
+
   <section class="feed">
     <div class="feed-head">
-      <h2>Flagged articles</h2>
+      <h2>Articles</h2>
       <div class="updated" id="updatedAt">loading…</div>
     </div>
 
-    <div id="feedList">
-      <div class="empty">Loading results…</div>
+    <div class="filters" id="filters">
+      <div class="seg" id="tierSeg" role="group" aria-label="Signal">
+        <button data-tier="flagged" aria-pressed="true">Flagged</button>
+        <button data-tier="strong" aria-pressed="false">Strong</button>
+        <button data-tier="weak" aria-pressed="false">Weak</button>
+        <button data-tier="none" aria-pressed="false">Checked, no signal</button>
+      </div>
+      <div class="seg" id="sourceSeg" role="group" aria-label="Source">
+        <button data-source="all" aria-pressed="true">All sources</button>
+        <button data-source="PubMed" aria-pressed="false">PubMed</button>
+        <button data-source="Zenodo" aria-pressed="false">Zenodo</button>
+        <button data-source="The Guardian" aria-pressed="false">Guardian</button>
+      </div>
+      <input type="search" id="searchBox" placeholder="Search titles…" aria-label="Search titles">
+      <select id="sortSel" aria-label="Sort">
+        <option value="signal">Sort: strongest signal</option>
+        <option value="detector">Sort: detector score</option>
+        <option value="newest">Sort: newest</option>
+      </select>
     </div>
+
+    <div id="feedList"><div class="empty">Loading results…</div></div>
   </section>
 
   <section class="checker" id="checker">
-    <div class="checker-head">
-      <h2>Check a passage yourself</h2>
-      <p class="sub">Paste any text below to scan it for the same vocabulary-drift signals used across this dashboard.</p>
-      <p class="checker-privacy">Runs entirely in your browser — nothing you paste is sent anywhere or stored.</p>
-    </div>
-
+    <h2>Check a passage yourself</h2>
+    <p class="sub">Paste text to scan it for the same vocabulary-drift signal used above. This does not run the AI detector.</p>
+    <p class="checker-privacy">Runs entirely in your browser. Nothing you paste is sent anywhere or stored.</p>
     <textarea id="checkerInput" placeholder="Paste a paragraph, abstract, or article excerpt here…"></textarea>
-
     <div class="checker-controls">
       <button id="checkerBtn">Check this text</button>
       <span class="checker-wordcount" id="checkerWordCount">0 words</span>
     </div>
-
     <div class="checker-result" id="checkerResult"></div>
-
-    <div class="checker-caveat">
-      This is the same population-level vocabulary signal used elsewhere on this page, applied here to a single passage instead of a large corpus. That makes it considerably weaker evidence: short texts, technical writing, and non-native English prose can all trigger false positives, and a clean result doesn't rule out AI assistance either. Treat this as a quick, informal check — not a determination — and never as identification of which tool (if any) was used.
-    </div>
+    <div class="checker-caveat">This is a population-level signal applied to one passage, which makes it weak evidence. Short, technical or non-native English text can trigger false positives, and a clean result does not rule out AI assistance. Use it as an informal check, never as a determination.</div>
   </section>
 
   <footer>
-    <p class="caveat">Redline Watch surfaces editorial leads for a human reviewer. A flag reflects statistical similarity to known AI-drafting patterns at the population level — it is not evidence about any individual author's process, and should never be treated as a finding on its own.</p>
-    <p>Sources: PubMed E-utilities, Zenodo REST API · Detection: vocabulary-drift scoring + Sapling AI (third-party, advisory only) · Updated daily at 07:00</p>
+    <p class="caveat">Redline Watch surfaces editorial leads for a human reviewer. A flag reflects statistical similarity to known AI-drafting patterns, not evidence about any individual author's process, and should never be treated as a finding on its own.</p>
+    <p>Sources: PubMed E-utilities, Zenodo REST API, The Guardian Open Platform · Signals: vocabulary drift + Sapling AI detector (third-party, advisory) · Updated daily at 07:00 (Beirut time)</p>
   </footer>
-
 </div>
 
 <script>
-(async function(){
-  const listEl = document.getElementById('feedList');
-  const updatedEl = document.getElementById('updatedAt');
-  const scannedEl = document.getElementById('statScanned');
-  const flaggedEl = document.getElementById('statFlagged');
+function scoreText(rawText, vocab) {
+  const text = String(rawText || '');
+  const lower = text.toLowerCase();
+  const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const t = vocab.thresholds;
+  const matched = {};
+  let strongHits = 0;
+  let weakHits = 0;
 
-  function levelFromScore(pct){
-    if (pct >= 66) return 'high';
-    if (pct >= 33) return 'moderate';
-    return 'low';
-  }
-
-  function labelFromLevel(level){
-    return level === 'high' ? 'High' : level === 'moderate' ? 'Moderate' : 'Low';
-  }
-
-  function escapeHtml(str){
-    return String(str ?? '').replace(/[&<>"']/g, m => ({
-      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
-    }[m]));
-  }
-
-  function renderCard(item){
-    const pct = Math.round((item.score ?? item.aiScore ?? 0) * (item.score > 1 ? 1 : 100));
-    const level = levelFromScore(pct);
-    const signals = (item.signals || item.flaggedWords || []).slice(0, 6);
-    const date = item.date || item.published || '';
-    const source = item.source || 'Unknown source';
-    const title = item.title || 'Untitled record';
-    const link = item.link || item.url || '#';
-
-    return `
-      <article class="card level-${level}">
-        <div class="margin">
-          ${signals.slice(0,4).map(()=>'<span class="tick">✓</span>').join('') || '<span class="tick">—</span>'}
-        </div>
-        <div class="body">
-          <div class="row-top">
-            <span class="badge">${labelFromLevel(level)}</span>
-            <span class="source">${escapeHtml(source)}</span>
-            ${date ? `<span class="date">${escapeHtml(date)}</span>` : ''}
-          </div>
-          <h3 class="headline"><a href="${escapeHtml(link)}" target="_blank" rel="noopener">${escapeHtml(title)}</a></h3>
-          ${signals.length ? `<div class="signals">${signals.map(s => `<span class="signal">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
-          <div class="scorebar">
-            <span>Detector confidence</span>
-            <span class="track"><span class="fill" style="width:${pct}%"></span></span>
-            <span class="pct">${pct}%</span>
-          </div>
-        </div>
-      </article>
-    `;
-  }
-
-  try{
-    const res = await fetch('results.json', { cache: 'no-store' });
-    if (!res.ok) throw new Error('results.json not found (' + res.status + ')');
-    const data = await res.json();
-
-    const items = Array.isArray(data) ? data : (data.items || data.results || []);
-    const scanned = data.totalScanned ?? data.scanned ?? items.length;
-    const generatedAt = data.generatedAt || data.updated || null;
-
-    scannedEl.textContent = scanned;
-    flaggedEl.textContent = items.length;
-    updatedEl.textContent = generatedAt
-      ? 'Updated ' + new Date(generatedAt).toLocaleString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
-      : 'Updated recently';
-
-    if (!items.length){
-      listEl.innerHTML = '<div class="empty">No flagged records in the latest scan. That is a clean day — check back tomorrow at 7am.</div>';
-      return;
+  function countWords(list, isStrong) {
+    for (const w of list) {
+      const re = new RegExp('(?<![\\w-])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w-])', 'gi');
+      const n = (text.match(re) || []).length;
+      if (n > 0) {
+        matched[w] = (matched[w] || 0) + n;
+        if (isStrong) strongHits += n; else weakHits += n;
+      }
     }
-
-    listEl.innerHTML = items.map(renderCard).join('');
-  } catch (err){
-    listEl.innerHTML = `<div class="empty">Couldn't load results.json yet.<br>This page will populate automatically once the daily workflow commits its first file.</div>`;
-    updatedEl.textContent = '—';
-    scannedEl.textContent = '0';
-    flaggedEl.textContent = '0';
-    console.error(err);
   }
+  countWords(vocab.strongWords, true);
+  countWords(vocab.weakWords, false);
+
+  let explicitHit = null;
+  for (const p of vocab.explicitPhrases) {
+    if (lower.includes(p)) { explicitHit = p; break; }
+  }
+
+  const weighted = wordCount > 0
+    ? ((strongHits * vocab.weights.strong + weakHits * vocab.weights.weak) / wordCount) * 100
+    : 0;
+
+  let level = 'none';
+  const tooShort = wordCount < t.minWords;
+  const strongOk = strongHits >= (t.minStrongHits || 1);
+  if (explicitHit) level = 'explicit';
+  else if (!tooShort && strongOk && weighted >= t.elevated) level = 'elevated';
+  else if (!tooShort && strongOk && weighted >= t.moderate) level = 'moderate';
+
+  const top = Object.entries(matched).sort((a, b) => b[1] - a[1]).slice(0, 8)
+    .map(([w, n]) => (n > 1 ? w + ' x' + n : w));
+
+  return {
+    words: wordCount,
+    tooShort,
+    strongHits,
+    weakHits,
+    weighted: Number(weighted.toFixed(2)),
+    level,
+    explicitHit,
+    matched: top
+  };
+}
+
+
+const DEFAULT_VOCAB = {
+  strongWords: ['delve','delves','delving','tapestry','intricate','intricacies','meticulous','meticulously','underscore','underscores','underscoring','showcasing','commendable','multifaceted','myriad','plethora','testament'],
+  weakWords: ['pivotal','crucial','robust','comprehensive','notably','furthermore','moreover','leverage','leveraging','foster','fostering','paradigm','holistic','landscape'],
+  explicitPhrases: ['as an ai language model','as a large language model','as an ai assistant','regenerate response','as of my last knowledge update'],
+  weights: { strong: 2, weak: 0.5 },
+  thresholds: { minWords: 80, minStrongHits: 2, moderate: 1.5, elevated: 3.0, detectorHigh: 85 }
+};
+
+const DEMO = (function(){
+  const today = new Date();
+  const d = n => new Date(today.getTime() - n*86400000).toISOString().slice(0,10);
+  const runs = [];
+  for (let i = 13; i >= 0; i--) runs.push({ date: d(i), scanned: 150 + (i*7)%40, detectorChecked: 10, strong: (i*3)%3 === 0 ? 1 : 0, weak: (i*5)%4 });
+  return {
+    schema: 2, generatedAt: new Date().toISOString(), lastRun: runs[runs.length-1], runs,
+    items: [
+      { source:'PubMed', title:'Sample article A (demo data, not a real paper)', journal:'Demo Journal', date:d(1), link:'#', firstSeen:d(1), words:210, vocabLevel:'elevated', vocabWeighted:3.4, matched:['delve x2','intricate','underscores'], explicitHit:null, detectorScore:93, signal:'strong' },
+      { source:'Zenodo', title:'Sample article B (demo data, not a real record)', journal:'Demo Author', date:d(1), link:'#', firstSeen:d(1), words:150, vocabLevel:'none', vocabWeighted:0.4, matched:[], explicitHit:null, detectorScore:88, signal:'weak' },
+      { source:'The Guardian', title:'Sample news item C (demo data)', journal:'The Guardian', date:d(0), link:'#', firstSeen:d(0), words:600, vocabLevel:'moderate', vocabWeighted:1.7, matched:['pivotal','tapestry x2'], explicitHit:null, detectorScore:null, signal:'weak' },
+      { source:'PubMed', title:'Sample article D (demo data)', journal:'Demo Journal', date:d(2), link:'#', firstSeen:d(2), words:190, vocabLevel:'none', vocabWeighted:0.0, matched:[], explicitHit:null, detectorScore:12, signal:'none' },
+      { source:'PubMed', title:'Sample article E with a chatbot phrase (demo data)', journal:'Demo Journal', date:d(3), link:'#', firstSeen:d(3), words:120, vocabLevel:'explicit', vocabWeighted:0.8, matched:[], explicitHit:'regenerate response', detectorScore:null, signal:'strong' }
+    ]
+  };
 })();
 
-// ---------- Checker tool ----------
-(function(){
-  // Vocabulary-drift word list, per the Matsui (2025) methodology this project is built on.
-  // Single words/short phrases documented to have become statistically more common
-  // in abstracts following the mainstream adoption of LLM drafting tools.
-  const DRIFT_WORDS = [
-    'delve', 'delves', 'delving',
-    'underscore', 'underscores', 'underscoring',
-    'meticulous', 'meticulously',
-    'boast', 'boasts', 'boasting',
-    'intricate', 'intricacies',
-    'tapestry',
-    'realm', 'realms',
-    'navigate', 'navigating',
-    'foster', 'fosters', 'fostering',
-    'bolster', 'bolsters', 'bolstering',
-    'garner', 'garnered', 'garnering',
-    'comprehensive',
-    'robust',
-    'multifaceted',
-    'nuanced',
-    'holistic',
-    'paradigm',
-    'leverage', 'leveraging',
-    'streamline', 'streamlining',
-    'synergy', 'synergies',
-    'cutting-edge',
-    'testament',
-    'showcasing', 'showcase',
-    'underpins', 'underpin',
-    'notably',
-    'moreover',
-    'furthermore',
-    'pivotal',
-    'landscape',
-    'ecosystem',
-    'ever-evolving',
-    'fast-paced',
-  ];
+const $ = id => document.getElementById(id);
+const esc = s => String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const safeUrl = u => /^https?:\/\//i.test(String(u || '')) ? String(u) : '#';
+const TIER_LABEL = { strong: 'Strong signal', weak: 'Weak signal', none: 'No signal' };
 
-  // Literal leftover chatbot boilerplate — a much stronger signal than vocabulary drift.
-  const EXPLICIT_PHRASES = [
-    'as an ai language model',
-    'as a large language model',
-    "i don't have personal opinions",
-    "i don't have the ability to",
-    'i cannot provide medical advice',
-    'as an ai, i',
-    "i'm just an ai",
-    'as of my last knowledge update',
-    'as of my last training update',
-    'i do not have access to real-time',
-  ];
+const state = { data: null, tier: 'flagged', source: 'all', q: '', sort: 'signal' };
+const rank = { strong: 3, weak: 2, none: 1 };
 
-  const inputEl = document.getElementById('checkerInput');
-  const btnEl = document.getElementById('checkerBtn');
-  const wordCountEl = document.getElementById('checkerWordCount');
-  const resultEl = document.getElementById('checkerResult');
+function renderCard(i){
+  const tier = i.signal || 'none';
+  const chips = [];
+  if (i.explicitHit) chips.push('chatbot phrase: “' + i.explicitHit + '”');
+  (i.matched || []).slice(0, 6).forEach(m => chips.push(m));
+  const det = (i.detectorScore !== undefined && i.detectorScore !== null)
+    ? '<div class="metric"><span class="lbl">Detector score</span><span class="track"><span class="fill" style="width:' + Math.max(0, Math.min(100, i.detectorScore)) + '%"></span></span><span class="val">' + esc(i.detectorScore) + '/100</span></div>'
+    : '<div class="metric"><span class="lbl">Detector score</span><span class="val">not checked</span></div>';
+  const vocab = '<div class="metric"><span class="lbl">Vocabulary drift</span><span class="val">' + esc(i.vocabLevel || 'none') + ' · ' + esc(i.vocabWeighted ?? 0) + ' per 100 words</span></div>';
+  return '<article class="card tier-' + esc(tier) + '"><div class="margin" aria-hidden="true"></div><div class="body">' +
+    '<div class="row-top"><span class="badge">' + esc(TIER_LABEL[tier] || tier) + '</span><span class="source">' + esc(i.source) + '</span>' +
+    (i.date ? '<span class="date">' + esc(i.date) + '</span>' : '') + '</div>' +
+    '<h3 class="headline"><a href="' + esc(safeUrl(i.link)) + '" target="_blank" rel="noopener">' + esc(i.title || 'Untitled record') + '</a></h3>' +
+    (chips.length ? '<div class="signals">' + chips.map(c => '<span class="signal">' + esc(c) + '</span>').join('') + '</div>' : '') +
+    det + vocab +
+    '<div class="fine">Detector scores are model estimates for the text analysed, not the share of the article written by AI.</div>' +
+    '</div></article>';
+}
 
-  function countWords(text){
-    const trimmed = text.trim();
-    if (!trimmed) return 0;
-    return trimmed.split(/\s+/).length;
-  }
-
-  inputEl.addEventListener('input', () => {
-    wordCountEl.textContent = countWords(inputEl.value) + ' words';
+function visibleItems(){
+  const s = state;
+  let list = (s.data.items || []).filter(i => {
+    const tier = i.signal || 'none';
+    if (s.tier === 'flagged' && tier === 'none') return false;
+    if (s.tier === 'strong' && tier !== 'strong') return false;
+    if (s.tier === 'weak' && tier !== 'weak') return false;
+    if (s.tier === 'none' && tier !== 'none') return false;
+    if (s.source !== 'all' && i.source !== s.source) return false;
+    if (s.q && !String(i.title || '').toLowerCase().includes(s.q)) return false;
+    return true;
   });
+  const det = i => (i.detectorScore === undefined || i.detectorScore === null) ? -1 : i.detectorScore;
+  list.sort((a, b) => {
+    if (s.sort === 'newest') return String(b.firstSeen || b.date).localeCompare(String(a.firstSeen || a.date));
+    if (s.sort === 'detector') return det(b) - det(a);
+    return (rank[b.signal || 'none'] - rank[a.signal || 'none']) || (det(b) - det(a));
+  });
+  return list;
+}
 
-  function escapeHtml(str){
-    return String(str ?? '').replace(/[&<>"']/g, m => ({
-      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
-    }[m]));
-  }
+function renderFeed(){
+  const list = visibleItems();
+  $('feedList').innerHTML = list.length
+    ? list.map(renderCard).join('')
+    : '<div class="empty">Nothing matches these filters.' + (state.tier === 'flagged' ? ' No flagged articles is a good day.' : '') + '</div>';
+}
 
-  function analyze(text){
-    const words = countWords(text);
-    const lower = text.toLowerCase();
+function renderTrend(runs){
+  if (!runs || runs.length < 2){ $('trendSection').hidden = true; return; }
+  const last = runs.slice(-30);
+  const max = Math.max(1, ...last.map(r => (r.strong || 0) + (r.weak || 0)));
+  const w = 300, h = 60, gap = 2, bw = Math.max(2, (w - gap * (last.length - 1)) / last.length);
+  const bars = last.map((r, k) => {
+    const v = (r.strong || 0) + (r.weak || 0);
+    const bh = v === 0 ? 1 : Math.max(3, (v / max) * (h - 4));
+    return '<rect x="' + (k * (bw + gap)).toFixed(1) + '" y="' + (h - bh).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" fill="' + (v ? '#B3261E' : '#C7CDC9') + '"><title>' + esc(r.date) + ': ' + v + ' flagged of ' + esc(r.scanned) + ' scanned</title></rect>';
+  }).join('');
+  $('trendChart').innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" role="img" aria-label="Flagged articles per day, last ' + last.length + ' scans">' + bars + '</svg>';
+  $('trendCap').textContent = 'Last ' + last.length + ' scans · tallest bar = ' + max + ' flagged in one day';
+  $('trendSection').hidden = false;
+}
 
-    const hits = [];
-    DRIFT_WORDS.forEach(w => {
-      const re = new RegExp('\\b' + w.replace(/[-]/g, '\\-') + '\\b', 'gi');
-      const matches = text.match(re);
-      if (matches) hits.push({ word: w, count: matches.length });
+function setStats(data, demo){
+  const lr = data.lastRun || {};
+  $('statDate').textContent = lr.date || '—';
+  $('statScanned').textContent = lr.scanned ?? '—';
+  $('statChecked').textContent = lr.detectorChecked ?? '—';
+  $('statFlagged').textContent = (data.items || []).filter(i => (i.signal || 'none') !== 'none').length;
+  $('updatedAt').textContent = data.generatedAt
+    ? 'Updated ' + new Date(data.generatedAt).toLocaleString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
+    : 'No scan yet';
+  $('demoBanner').innerHTML = demo ? '<div class="demo-banner"><strong>Sample data.</strong> These are made-up entries to preview the design. Remove <code>?demo</code> from the address to see real results.</div>' : '';
+}
+
+function wireFilters(){
+  function seg(id, attr, key){
+    $(id).addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      state[key] = b.getAttribute(attr);
+      $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      renderFeed();
     });
+  }
+  seg('tierSeg', 'data-tier', 'tier');
+  seg('sourceSeg', 'data-source', 'source');
+  $('searchBox').addEventListener('input', e => { state.q = e.target.value.trim().toLowerCase(); renderFeed(); });
+  $('sortSel').addEventListener('change', e => { state.sort = e.target.value; renderFeed(); });
+}
 
-    let explicitHit = null;
-    for (const phrase of EXPLICIT_PHRASES){
-      if (lower.includes(phrase)){ explicitHit = phrase; break; }
+let VOCAB = DEFAULT_VOCAB;
+
+async function init(){
+  wireFilters();
+  const demo = /[?&]demo\b/.test(location.search);
+  try { const vr = await fetch('vocab.json', { cache: 'no-store' }); if (vr.ok) { const v = await vr.json(); if (Array.isArray(v.strongWords) && v.thresholds && v.weights) VOCAB = v; } } catch (e) { /* default list */ }
+  try {
+    let data;
+    if (demo) data = DEMO;
+    else {
+      const res = await fetch('results.json', { cache: 'no-store' });
+      if (!res.ok) throw new Error('results.json not found (' + res.status + ')');
+      data = await res.json();
     }
-
-    const totalHits = hits.reduce((sum, h) => sum + h.count, 0);
-    const density = words > 0 ? (totalHits / words) * 100 : 0;
-
-    return { words, hits, totalHits, density, explicitHit };
-  }
-
-  function levelFromAnalysis(a){
-    if (a.explicitHit) return 'high';
-    if (a.density >= 2.2) return 'high';
-    if (a.density >= 1.0) return 'moderate';
-    return 'low';
-  }
-
-  function render(a){
-    if (a.words < 40){
-      resultEl.innerHTML = `<div class="empty">Paste at least 40 words for a meaningful reading — very short snippets produce unreliable density scores.</div>`;
+    if (Array.isArray(data) || !data || !Array.isArray(data.items)){
+      $('feedList').innerHTML = '<div class="empty">results.json is in an older format. The next daily run will replace it.</div>';
+      $('updatedAt').textContent = '—';
       return;
     }
-
-    const level = levelFromAnalysis(a);
-    const label = level === 'high' ? 'High' : level === 'moderate' ? 'Moderate' : 'Low';
-    const pct = Math.min(100, Math.round(a.density * 20));
-    const topHits = a.hits.sort((x,y) => y.count - x.count).slice(0, 8);
-
-    resultEl.innerHTML = `
-      <article class="card level-${level}">
-        <div class="margin">
-          ${topHits.slice(0,4).map(()=>'<span class="tick">✓</span>').join('') || '<span class="tick">—</span>'}
-        </div>
-        <div class="body">
-          <div class="row-top">
-            <span class="badge">${label}</span>
-            <span class="source">${a.words} words scanned</span>
-          </div>
-          <h3 class="headline">${a.explicitHit ? 'Literal chatbot phrase found' : (topHits.length ? 'Vocabulary-drift words found' : 'No notable signal found')}</h3>
-          ${a.explicitHit ? `<div class="signals"><span class="signal">"${escapeHtml(a.explicitHit)}"</span></div>` : ''}
-          ${topHits.length ? `<div class="signals highlight-list">${topHits.map(h => `<span class="signal">${escapeHtml(h.word)}${h.count > 1 ? ' ×' + h.count : ''}</span>`).join('')}</div>` : ''}
-          <div class="scorebar">
-            <span>Vocab density</span>
-            <span class="track"><span class="fill" style="width:${pct}%"></span></span>
-            <span class="pct">${a.density.toFixed(2)}/100w</span>
-          </div>
-        </div>
-      </article>
-    `;
+    state.data = data;
+    setStats(data, demo);
+    renderTrend(data.runs);
+    if (!data.generatedAt) {
+      $('feedList').innerHTML = '<div class="empty">No scan has run yet. The first results appear after the 07:00 run.</div>';
+      return;
+    }
+    renderFeed();
+  } catch (err){
+    $('feedList').innerHTML = '<div class="empty">Couldn’t load results.json yet. This page fills in after the first daily run.</div>';
+    $('updatedAt').textContent = '—';
+    console.error(err);
   }
+}
+init();
 
-  btnEl.addEventListener('click', () => {
+// ---------- Checker ----------
+(function(){
+  const inputEl = $('checkerInput'), wcEl = $('checkerWordCount'), resEl = $('checkerResult');
+  const count = t => t.trim() ? t.trim().split(/\s+/).length : 0;
+  inputEl.addEventListener('input', () => { wcEl.textContent = count(inputEl.value) + ' words'; });
+  $('checkerBtn').addEventListener('click', () => {
     const text = inputEl.value;
-    if (countWords(text) === 0){
-      resultEl.innerHTML = `<div class="empty">Paste some text first.</div>`;
-      return;
-    }
-    render(analyze(text));
+    const n = count(text);
+    if (n === 0){ resEl.innerHTML = '<div class="empty">Paste some text first.</div>'; return; }
+    const min = VOCAB.thresholds.minWords;
+    if (n < min){ resEl.innerHTML = '<div class="empty">Paste at least ' + min + ' words. Shorter snippets give unreliable readings.</div>'; return; }
+    const r = scoreText(text, VOCAB);
+    const tier = (r.level === 'explicit' || r.level === 'elevated') ? 'strong' : r.level === 'moderate' ? 'weak' : 'none';
+    const label = r.level === 'explicit' ? 'Chatbot phrase found' : r.level === 'elevated' ? 'Elevated vocabulary drift' : r.level === 'moderate' ? 'Moderate vocabulary drift' : 'No notable signal';
+    const chips = (r.explicitHit ? ['“' + r.explicitHit + '”'] : []).concat(r.matched);
+    resEl.innerHTML = '<article class="card tier-' + tier + '"><div class="margin" aria-hidden="true"></div><div class="body">' +
+      '<div class="row-top"><span class="badge">' + esc(label) + '</span><span class="source">' + r.words + ' words scanned</span></div>' +
+      (chips.length ? '<div class="signals">' + chips.map(c => '<span class="signal">' + esc(c) + '</span>').join('') + '</div>' : '') +
+      '<div class="metric"><span class="lbl">Strong / weak words</span><span class="val">' + r.strongHits + ' / ' + r.weakHits + '</span></div>' +
+      '<div class="metric"><span class="lbl">Weighted density</span><span class="val">' + r.weighted + ' per 100 words</span></div>' +
+      '</div></article>';
   });
 })();
 </script>
-
 </body>
 </html>

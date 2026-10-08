@@ -1,0 +1,910 @@
+{
+  "name": "Redline Watch v2 - Medical literature + news AI-text screening",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "3814ba67-74cf-5593-8db1-98843d0ea4af",
+      "name": "Daily 7am Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/ramiabouaziz/ai-articles/main/vocab.json",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "02b2864f-2307-5ef2-aec2-bc0c44dba9d8",
+      "name": "Load vocab.json",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://raw.githubusercontent.com/ramiabouaziz/ai-articles/main/results.json?t=' + $now.toMillis() }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "db0d25d7-262b-5260-8d1f-3faff851d1d5",
+      "name": "Load history",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg1",
+              "name": "pubmedQuery",
+              "value": "hasabstract[text] AND english[lang]",
+              "type": "string"
+            },
+            {
+              "id": "cfg2",
+              "name": "pubmedMax",
+              "value": 100,
+              "type": "number"
+            },
+            {
+              "id": "cfg3",
+              "name": "zenodoQuery",
+              "value": "(medicine OR medical OR clinical OR patients OR disease OR health)",
+              "type": "string"
+            },
+            {
+              "id": "cfg4",
+              "name": "guardianQuery",
+              "value": "health OR medical OR medicine OR hospital OR NHS OR disease OR patients",
+              "type": "string"
+            },
+            {
+              "id": "cfg5",
+              "name": "guardianSections",
+              "value": "society|science",
+              "type": "string"
+            },
+            {
+              "id": "cfg6",
+              "name": "maxDetectorCalls",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "cfg7",
+              "name": "retentionDays",
+              "value": 90,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "146af91e-9bd9-5194-99b9-f3ddb358bb86",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "db",
+              "value": "pubmed"
+            },
+            {
+              "name": "retmode",
+              "value": "json"
+            },
+            {
+              "name": "retmax",
+              "value": "={{$json.pubmedMax}}"
+            },
+            {
+              "name": "sort",
+              "value": "date"
+            },
+            {
+              "name": "term",
+              "value": "={{$json.pubmedQuery}}"
+            },
+            {
+              "name": "reldate",
+              "value": "2"
+            },
+            {
+              "name": "datetype",
+              "value": "edat"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7dc4ebcd-690f-5b12-a23b-1779a7ad5372",
+      "name": "PubMed: esearch (get IDs)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        -240
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Always returns exactly one item so the IF node after it can decide.\nconst first = $input.first();\nconst res = (first && first.json && first.json.esearchresult) || {};\nconst ids = Array.isArray(res.idlist) ? res.idlist : [];\nreturn [{ json: { ids: ids.join(','), count: ids.length } }];\n"
+      },
+      "id": "56e6400a-fab2-5a94-b9e8-258fe8c14e70",
+      "name": "Join PubMed IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "pm-count",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2f52a278-74d8-5728-9c78-eb41f88faad4",
+      "name": "Any PubMed IDs?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "db",
+              "value": "pubmed"
+            },
+            {
+              "name": "rettype",
+              "value": "abstract"
+            },
+            {
+              "name": "retmode",
+              "value": "xml"
+            },
+            {
+              "name": "id",
+              "value": "={{$json.ids}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b3c39a65-c91a-5608-9e2d-287ff4618610",
+      "name": "PubMed: efetch (get abstracts XML)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        -320
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "99462d32-24ae-501c-93eb-600220210cfe",
+      "name": "Parse XML to JSON",
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        -320
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const first = $input.first();\nconst root = (first && first.json) || {};\nconst set = root.PubmedArticleSet;\nlet articles = (set && set.PubmedArticle) || [];\nif (!Array.isArray(articles)) articles = [articles];\n\nfunction textOf(node) {\n  if (node === undefined || node === null) return '';\n  if (typeof node === 'string') return node;\n  if (Array.isArray(node)) return node.map(textOf).join(' ');\n  if (typeof node === 'object') return textOf(node._ || node['#text'] || '');\n  return String(node);\n}\nfunction pad(n) { return String(n).padStart(2, '0'); }\n\nconst out = [];\nfor (const a of articles) {\n  const medline = a.MedlineCitation || {};\n  const article = medline.Article || {};\n  const pmid = textOf(medline.PMID).trim();\n  if (!pmid) continue;\n  const title = textOf(article.ArticleTitle).trim() || '(no title)';\n  const abstract = textOf(article.Abstract && article.Abstract.AbstractText).trim();\n  const journal = article.Journal && article.Journal.Title ? textOf(article.Journal.Title).trim() : '';\n\n  let date = '';\n  const ad = Array.isArray(article.ArticleDate) ? article.ArticleDate[0] : article.ArticleDate;\n  if (ad && ad.Year) {\n    date = [textOf(ad.Year), pad(textOf(ad.Month) || '1'), pad(textOf(ad.Day) || '1')].join('-');\n  } else {\n    const pd = article.Journal && article.Journal.JournalIssue && article.Journal.JournalIssue.PubDate;\n    date = pd ? (textOf(pd.Year) || textOf(pd.MedlineDate).slice(0, 4)) : '';\n  }\n\n  out.push({\n    json: {\n      source: 'PubMed',\n      sourceType: 'literature',\n      title,\n      journal,\n      date,\n      link: 'https://pubmed.ncbi.nlm.nih.gov/' + pmid + '/',\n      text: title + '. ' + abstract\n    }\n  });\n}\nreturn out;\n"
+      },
+      "id": "3356fe35-81f5-5531-ab0e-8248ac3984c4",
+      "name": "Normalize PubMed Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        -320
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// PubMed returned no IDs today. Emit one empty item so the Merge node still gets input 0.\nreturn [{ json: {} }];\n"
+      },
+      "id": "03edf814-8692-521f-9a45-4aa7f37b85f9",
+      "name": "No PubMed results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://zenodo.org/api/records",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{$json.zenodoQuery}} AND publication_date:[{{$now.minus({days:2}).toISODate()}} TO {{$now.toISODate()}}]"
+            },
+            {
+              "name": "type",
+              "value": "publication"
+            },
+            {
+              "name": "size",
+              "value": "50"
+            },
+            {
+              "name": "sort",
+              "value": "mostrecent"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7571c031-2e1c-56e3-803e-c32380271c4c",
+      "name": "Zenodo: search records",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const first = $input.first();\nconst body = (first && first.json) || {};\nconst hits = (body.hits && body.hits.hits) || [];\n\nreturn hits.map(h => {\n  const md = h.metadata || {};\n  const desc = String(md.description || '').replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim();\n  const creators = (md.creators || []).map(c => c.name).slice(0, 3).join(', ');\n  const title = String(md.title || '(no title)').trim();\n  return {\n    json: {\n      source: 'Zenodo',\n      sourceType: 'literature',\n      title,\n      journal: creators,\n      date: md.publication_date || '',\n      link: (h.links && (h.links.self_html || h.links.html)) || '',\n      text: title + '. ' + desc\n    }\n  };\n});\n"
+      },
+      "id": "6ef71280-4077-5838-b7ea-a1ee8b432d03",
+      "name": "Normalize Zenodo Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "https://content.guardianapis.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{$json.guardianQuery}}"
+            },
+            {
+              "name": "section",
+              "value": "={{$json.guardianSections}}"
+            },
+            {
+              "name": "from-date",
+              "value": "={{$now.minus({ days: 1 }).toISODate()}}"
+            },
+            {
+              "name": "to-date",
+              "value": "={{$now.toISODate()}}"
+            },
+            {
+              "name": "order-by",
+              "value": "newest"
+            },
+            {
+              "name": "page-size",
+              "value": "30"
+            },
+            {
+              "name": "show-fields",
+              "value": "body,headline,trailText"
+            },
+            {
+              "name": "lang",
+              "value": "en"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "159ea9f6-0fb0-5a4e-b417-a47f84573e73",
+      "name": "Guardian: Search Health News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        240
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": null,
+          "name": "Guardian API key"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const first = $input.first();\nconst data = (first && first.json) || {};\nconst results = (data.response && data.response.results) || [];\n\nfunction cleanHtml(value) {\n  return String(value || '')\n    .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&amp;/gi, '&')\n    .replace(/&quot;/gi, '\"')\n    .replace(/&#39;/gi, \"'\")\n    .replace(/&lt;/gi, '<')\n    .replace(/&gt;/gi, '>')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nreturn results\n  .filter(a => a.type === 'article')\n  .map(a => {\n    const f = a.fields || {};\n    const title = cleanHtml(f.headline || a.webTitle || '(no title)');\n    const body = cleanHtml(f.body || f.trailText || '');\n    return {\n      json: {\n        source: 'The Guardian',\n        sourceType: 'news',\n        title,\n        journal: 'The Guardian',\n        date: String(a.webPublicationDate || '').slice(0, 10),\n        link: a.webUrl || '',\n        text: (title + '. ' + body).trim(),\n        section: a.sectionName || ''\n      }\n    };\n  });\n"
+      },
+      "id": "ac5eb031-cb6e-5816-9697-4b6d34935df6",
+      "name": "Normalize Guardian Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        240
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "id": "a271934e-b8b9-5f5e-8f53-b93e3b5a69c1",
+      "name": "Merge PubMed + Zenodo + Guardian",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fallback list, used only if vocab.json could not be loaded from GitHub.\nconst FALLBACK = {\n  strongWords: ['delve', 'delves', 'delving', 'tapestry', 'intricate', 'intricacies', 'meticulous', 'meticulously', 'underscore', 'underscores', 'underscoring', 'showcasing', 'commendable', 'multifaceted', 'myriad', 'plethora', 'testament'],\n  weakWords: ['pivotal', 'crucial', 'robust', 'comprehensive', 'notably', 'furthermore', 'moreover', 'leverage', 'leveraging', 'foster', 'fostering', 'paradigm', 'holistic', 'landscape'],\n  explicitPhrases: ['as an ai language model', 'as a large language model', 'as an ai assistant', 'regenerate response', 'as of my last knowledge update'],\n  weights: { strong: 2, weak: 0.5 },\n  thresholds: { minWords: 80, minStrongHits: 2, moderate: 1.5, elevated: 3.0, detectorHigh: 85 }\n};\n\nlet vocab = FALLBACK;\ntry {\n  const v = $('Load vocab.json').first().json;\n  if (v && Array.isArray(v.strongWords) && v.thresholds && v.weights) vocab = v;\n} catch (e) { /* keep fallback */ }\n\nfunction scoreText(rawText, vocab) {\n  const text = String(rawText || '');\n  const lower = text.toLowerCase();\n  const wordCount = text.trim() ? text.trim().split(/\\s+/).length : 0;\n  const t = vocab.thresholds;\n  const matched = {};\n  let strongHits = 0;\n  let weakHits = 0;\n\n  function countWords(list, isStrong) {\n    for (const w of list) {\n      const re = new RegExp('(?<![\\\\w-])' + w.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + '(?![\\\\w-])', 'gi');\n      const n = (text.match(re) || []).length;\n      if (n > 0) {\n        matched[w] = (matched[w] || 0) + n;\n        if (isStrong) strongHits += n; else weakHits += n;\n      }\n    }\n  }\n  countWords(vocab.strongWords, true);\n  countWords(vocab.weakWords, false);\n\n  let explicitHit = null;\n  for (const p of vocab.explicitPhrases) {\n    if (lower.includes(p)) { explicitHit = p; break; }\n  }\n\n  const weighted = wordCount > 0\n    ? ((strongHits * vocab.weights.strong + weakHits * vocab.weights.weak) / wordCount) * 100\n    : 0;\n\n  let level = 'none';\n  const tooShort = wordCount < t.minWords;\n  const strongOk = strongHits >= (t.minStrongHits || 1);\n  if (explicitHit) level = 'explicit';\n  else if (!tooShort && strongOk && weighted >= t.elevated) level = 'elevated';\n  else if (!tooShort && strongOk && weighted >= t.moderate) level = 'moderate';\n\n  const top = Object.entries(matched).sort((a, b) => b[1] - a[1]).slice(0, 8)\n    .map(([w, n]) => (n > 1 ? w + ' x' + n : w));\n\n  return {\n    words: wordCount,\n    tooShort,\n    strongHits,\n    weakHits,\n    weighted: Number(weighted.toFixed(2)),\n    level,\n    explicitHit,\n    matched: top\n  };\n}\n\n\nconst seen = new Set();\nconst out = [];\nfor (const it of $input.all()) {\n  const j = it.json || {};\n  if (!j.link || !j.text) continue;\n  if (seen.has(j.link)) continue;\n  seen.add(j.link);\n  const s = scoreText(j.text, vocab);\n  out.push({\n    json: {\n      ...j,\n      words: s.words,\n      tooShort: s.tooShort,\n      vocabLevel: s.level,\n      vocabWeighted: s.weighted,\n      vocabStrong: s.strongHits,\n      vocabWeak: s.weakHits,\n      matched: s.matched,\n      explicitHit: s.explicitHit,\n      detThreshold: vocab.thresholds.detectorHigh\n    }\n  });\n}\nreturn out;\n"
+      },
+      "id": "bf4bc46b-4aff-58a5-ab5f-009e89b52415",
+      "name": "Prepare & Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Decide which items are worth one detector call, within the daily budget.\n// Priority: vocabulary-flagged items first, then a round-robin sample across sources\n// so one source (e.g. the Guardian) cannot use up the whole budget.\nconst cfg = $('Config').first().json || {};\nconst max = Math.max(0, Number(cfg.maxDetectorCalls) || 10);\n\nlet history = {};\ntry { history = $('Load history').first().json || {}; } catch (e) { history = {}; }\nconst checked = new Set(\n  (Array.isArray(history.items) ? history.items : [])\n    .filter(i => i && i.detectorScore !== undefined && i.detectorScore !== null)\n    .map(i => i.link)\n);\n\nconst rank = { elevated: 3, moderate: 2, none: 1 };\nconst cands = $input.all()\n  .map(i => i.json)\n  .filter(j => j && j.link && !j.tooShort && j.vocabLevel !== 'explicit' && !checked.has(j.link));\n\nconst byStrength = (a, b) => (rank[b.vocabLevel] - rank[a.vocabLevel]) || (b.vocabWeighted - a.vocabWeighted);\n\nconst flagged = cands.filter(j => rank[j.vocabLevel] > 1).sort(byStrength);\n\nconst groups = {};\ncands.filter(j => rank[j.vocabLevel] === 1).forEach(j => {\n  (groups[j.source] = groups[j.source] || []).push(j);\n});\nObject.values(groups).forEach(g => g.sort(byStrength));\n\nconst rest = [];\nlet added = true;\nwhile (added) {\n  added = false;\n  for (const k of Object.keys(groups)) {\n    const next = groups[k].shift();\n    if (next) { rest.push(next); added = true; }\n  }\n}\n\nconst selected = flagged.concat(rest).slice(0, max);\nif (selected.length === 0) return [{ json: { _skip: true } }];\nreturn selected.map(j => ({ json: j }));\n"
+      },
+      "id": "589c30c6-bc9b-56bb-be4c-28086012381f",
+      "name": "Select For Detector",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "chk",
+              "leftValue": "={{ $json._skip ? 'skip' : 'check' }}",
+              "rightValue": "check",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "84e8b6f2-d9d9-5ab6-8781-bb8d9d8b2183",
+      "name": "Anything to check?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2912,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sapling.ai/api/v1/aidetect",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: String($json.text || '').slice(0, 3000), sent_scores: false }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 7000
+            }
+          }
+        }
+      },
+      "id": "2a585ccc-0b71-5dcc-ad93-a89169e6ca30",
+      "name": "AI Detector (Sapling)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3136,
+        -80
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": null,
+          "name": "Sapling API key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 15000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Attach detector scores to the scored items and compute the final tier.\n// Input is either the Sapling responses (same order as the selected items) or the \"nothing to check\" marker.\nconst selected = $('Select For Detector').all().map(i => i.json).filter(j => j && !j._skip);\nconst responses = $input.all().map(i => i.json || {});\n\nconst scoreByLink = {};\nlet detectorErrors = 0;\nif (selected.length > 0) {\n  if (responses.length !== selected.length) {\n    detectorErrors = selected.length;\n  } else {\n    selected.forEach((j, idx) => {\n      const r = responses[idx];\n      const n = Number(r && r.score);\n      if (r && !r.error && r.score !== undefined && r.score !== null && Number.isFinite(n)) {\n        scoreByLink[j.link] = Math.round(n * 100);\n      } else {\n        detectorErrors++;\n      }\n    });\n  }\n}\n\nconst out = [];\nfor (const it of $('Prepare & Score').all()) {\n  const j = it.json || {};\n  if (!j.link) continue;\n  const detectorScore = Object.prototype.hasOwnProperty.call(scoreByLink, j.link) ? scoreByLink[j.link] : null;\n  const detHigh = detectorScore !== null && detectorScore >= (j.detThreshold || 85);\n  const vocabFlag = j.vocabLevel === 'moderate' || j.vocabLevel === 'elevated' || j.vocabLevel === 'explicit';\n\n  let signal = 'none';\n  if (j.vocabLevel === 'explicit' || (vocabFlag && detHigh)) signal = 'strong';\n  else if (vocabFlag || detHigh) signal = 'weak';\n\n  const reasons = [];\n  if (j.explicitHit) reasons.push('Leftover chatbot phrase: \"' + j.explicitHit + '\"');\n  if (j.vocabLevel === 'moderate' || j.vocabLevel === 'elevated') {\n    reasons.push('Vocabulary drift (' + j.vocabLevel + '): ' + j.vocabStrong + ' strong word(s), weighted density ' + j.vocabWeighted + ' per 100 words');\n  }\n  if (detectorScore !== null) reasons.push('Detector score ' + detectorScore + '/100');\n\n  out.push({\n    json: {\n      source: j.source,\n      sourceType: j.sourceType,\n      title: j.title,\n      journal: j.journal,\n      date: j.date,\n      link: j.link,\n      words: j.words,\n      vocabLevel: j.vocabLevel,\n      vocabWeighted: j.vocabWeighted,\n      matched: j.matched,\n      explicitHit: j.explicitHit,\n      detectorScore,\n      detectorProvider: detectorScore !== null ? 'Sapling' : null,\n      signal,\n      reasons\n    }\n  });\n}\n\nout.push({ json: { _meta: true, detectorChecked: Object.keys(scoreByLink).length, detectorErrors } });\nreturn out;\n"
+      },
+      "id": "d6769f72-f0b5-574e-96b2-c75ca67e107f",
+      "name": "Attach Detector Scores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge today's results into the history file, update run statistics, and build the email.\nconst all = $input.all().map(i => i.json || {});\nconst meta = all.find(j => j._meta) || { detectorChecked: 0, detectorErrors: 0 };\nconst scored = all.filter(j => j.link);\n\nconst cfg = $('Config').first().json || {};\nconst retentionDays = Number(cfg.retentionDays) || 90;\nconst today = new Date().toISOString().slice(0, 10);\nconst cutoff = new Date(Date.now() - retentionDays * 86400000).toISOString().slice(0, 10);\n\nlet hist = {};\ntry { hist = $('Load history').first().json || {}; } catch (e) { hist = {}; }\nconst oldItems = Array.isArray(hist.items) ? hist.items : [];\nconst oldRuns = Array.isArray(hist.runs) ? hist.runs : [];\n\n// Only keep items that carry a signal or were checked by the detector.\n// Items with no signal and no detector score are counted but not listed.\nconst keepNew = scored.filter(j => j.signal !== 'none' || j.detectorScore !== null);\n\nconst byLink = new Map();\noldItems.forEach(i => { if (i && i.link) byLink.set(i.link, i); });\nkeepNew.forEach(j => {\n  if (!byLink.has(j.link)) byLink.set(j.link, { ...j, firstSeen: today });\n});\n\nconst rank = { strong: 3, weak: 2, none: 1 };\nconst items = Array.from(byLink.values())\n  .filter(i => (i.firstSeen || today) >= cutoff)\n  .sort((a, b) =>\n    (rank[b.signal] - rank[a.signal]) ||\n    ((b.detectorScore ?? -1) - (a.detectorScore ?? -1)) ||\n    String(b.firstSeen).localeCompare(String(a.firstSeen))\n  );\n\nconst bySource = {};\nscored.forEach(j => { bySource[j.source] = (bySource[j.source] || 0) + 1; });\n\nconst run = {\n  date: today,\n  scanned: scored.length,\n  bySource,\n  vocabFlagged: scored.filter(j => j.vocabLevel !== 'none').length,\n  detectorChecked: meta.detectorChecked,\n  detectorErrors: meta.detectorErrors,\n  strong: items.filter(i => i.firstSeen === today && i.signal === 'strong').length,\n  weak: items.filter(i => i.firstSeen === today && i.signal === 'weak').length\n};\n\nconst runs = oldRuns.filter(r => r && r.date !== today).concat([run]).slice(-retentionDays);\n\nconst file = {\n  schema: 2,\n  generatedAt: new Date().toISOString(),\n  lastRun: run,\n  runs,\n  items\n};\nconst fileContent = JSON.stringify(file, null, 1);\n\n// ---------- Email ----------\nfunction esc(s) {\n  return String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[m]));\n}\nconst todays = items.filter(i => i.firstSeen === today && i.signal !== 'none');\nconst checkedToday = keepNew.filter(j => j.detectorScore !== null).sort((a, b) => b.detectorScore - a.detectorScore).slice(0, 10);\n\nfunction row(i) {\n  const tier = i.signal === 'strong' ? 'STRONG' : i.signal === 'weak' ? 'WEAK' : 'NONE';\n  const col = i.signal === 'strong' ? '#B3261E' : i.signal === 'weak' ? '#9A6A0C' : '#1F6E63';\n  return '<tr>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd;color:' + col + ';font-weight:600\">' + tier + '</td>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd\"><a href=\"' + esc(i.link) + '\">' + esc(i.title) + '</a><br><span style=\"color:#666;font-size:12px\">' + esc(i.source) + '</span></td>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd;text-align:right\">' + (i.detectorScore !== null && i.detectorScore !== undefined ? i.detectorScore + '/100' : '-') + '</td>' +\n    '<td style=\"padding:6px 8px;border-bottom:1px solid #ddd;text-align:right\">' + esc(i.vocabWeighted) + '</td>' +\n    '</tr>';\n}\nfunction table(list) {\n  return '<table style=\"border-collapse:collapse;width:100%;font-size:14px\"><tr style=\"text-align:left;color:#555\">' +\n    '<th style=\"padding:6px 8px\">Signal</th><th style=\"padding:6px 8px\">Article</th>' +\n    '<th style=\"padding:6px 8px;text-align:right\">Detector</th><th style=\"padding:6px 8px;text-align:right\">Vocab /100w</th></tr>' +\n    list.map(row).join('') + '</table>';\n}\n\nlet html = '<div style=\"font-family:Arial,sans-serif;max-width:720px;color:#1B2430\">' +\n  '<h2 style=\"margin:0 0 8px\">Redline Watch - ' + esc(today) + '</h2>' +\n  '<p style=\"margin:0 0 12px\">' + run.scanned + ' records scanned (' + Object.keys(bySource).map(k => esc(k) + ' ' + bySource[k]).join(', ') + '). ' +\n  run.detectorChecked + ' sent to the detector' + (run.detectorErrors ? ' (' + run.detectorErrors + ' detector errors)' : '') + '. ' +\n  run.strong + ' strong and ' + run.weak + ' weak signals today.</p>';\n\nif (run.scanned === 0) {\n  html += '<p style=\"color:#B3261E\"><b>No records were scanned.</b> A source or the search query is probably failing. Check the n8n execution log.</p>';\n}\nif (todays.length) html += '<h3>Flagged today</h3>' + table(todays);\nelse html += '<p>No flagged articles today.</p>';\nif (checkedToday.length) html += '<h3>Highest detector scores today (all checked)</h3>' + table(checkedToday);\n\nhtml += '<p style=\"margin-top:18px\"><a href=\"https://ramiabouaziz.github.io/AI-Articles/redline-watch.html\">Open the dashboard</a></p>' +\n  '<p style=\"color:#666;font-size:12px\">A detector score is a model estimate for the text it was given. It is not the share of the text written by AI, and detectors produce false positives, especially on short, formulaic or non-native English text. These are leads for a human reviewer, not proof of authorship.</p></div>';\n\nconst subject = 'Redline Watch - ' + (run.strong + run.weak) + ' flagged, ' + run.detectorChecked + ' checked of ' + run.scanned + ' scanned (' + today + ')';\n\nreturn [{ json: { fileContent, subject, html, flaggedToday: todays.length, scanned: run.scanned } }];\n"
+      },
+      "id": "613cf5b8-31f9-53d4-9cf2-4cdae2f585ef",
+      "name": "Merge History + Build Outputs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3584,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "value": "ramiabouaziz",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "AI-Articles",
+          "mode": "name"
+        },
+        "filePath": "results.json",
+        "fileContent": "={{$json.fileContent}}",
+        "commitMessage": "=Redline Watch update {{$now.toFormat('yyyy-MM-dd HH:mm')}}"
+      },
+      "id": "e45093e7-95f4-55d4-8dd2-081d9b47b7ce",
+      "name": "GitHub: commit results.json",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        3808,
+        -100
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "pGpPxC33wMsAT9Fd",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "ramiaa742@gmail.com",
+        "subject": "={{$json.subject}}",
+        "emailType": "html",
+        "message": "={{$json.html}}",
+        "options": {}
+      },
+      "id": "217d11dd-3a36-5e39-aa78-ae30c5667f7e",
+      "name": "Gmail: send daily summary",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3808,
+        100
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mlMY8bgBnTzM7Qdb",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Redline Watch v2 - setup\n\n**Credentials to create / select**\n1. *Sapling API key* (Custom Auth). JSON: `{\"body\": {\"key\": \"YOUR_SAPLING_KEY\"}}`. Use a NEW key (the old one was exposed).\n2. *Guardian API key* (Query Auth). Name: `api-key`, Value: your key (free at open-platform.theguardian.com).\n3. GitHub and Gmail credentials are reused from the old workflow.\n\n**Edit searches** in the `Config` node (PubMed / Zenodo / Guardian queries, daily detector budget, retention).\n\n**Word list + thresholds** live in `vocab.json` in the repo and are loaded on every run.\n\n**First test:** run once manually, then check the email says `0 detector errors`.\nActivate the workflow only after that.",
+        "height": 380,
+        "width": 520
+      },
+      "id": "7a6a4c5c-cc42-5ecb-8ea4-c44f4f895fa1",
+      "name": "Setup notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        -520
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily 7am Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load vocab.json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load vocab.json": {
+      "main": [
+        [
+          {
+            "node": "Load history",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load history": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "PubMed: esearch (get IDs)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Zenodo: search records",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Guardian: Search Health News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PubMed: esearch (get IDs)": {
+      "main": [
+        [
+          {
+            "node": "Join PubMed IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Join PubMed IDs": {
+      "main": [
+        [
+          {
+            "node": "Any PubMed IDs?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any PubMed IDs?": {
+      "main": [
+        [
+          {
+            "node": "PubMed: efetch (get abstracts XML)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No PubMed results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PubMed: efetch (get abstracts XML)": {
+      "main": [
+        [
+          {
+            "node": "Parse XML to JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse XML to JSON": {
+      "main": [
+        [
+          {
+            "node": "Normalize PubMed Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize PubMed Records": {
+      "main": [
+        [
+          {
+            "node": "Merge PubMed + Zenodo + Guardian",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No PubMed results": {
+      "main": [
+        [
+          {
+            "node": "Merge PubMed + Zenodo + Guardian",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zenodo: search records": {
+      "main": [
+        [
+          {
+            "node": "Normalize Zenodo Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Zenodo Records": {
+      "main": [
+        [
+          {
+            "node": "Merge PubMed + Zenodo + Guardian",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Guardian: Search Health News": {
+      "main": [
+        [
+          {
+            "node": "Normalize Guardian Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Guardian Records": {
+      "main": [
+        [
+          {
+            "node": "Merge PubMed + Zenodo + Guardian",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge PubMed + Zenodo + Guardian": {
+      "main": [
+        [
+          {
+            "node": "Prepare & Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare & Score": {
+      "main": [
+        [
+          {
+            "node": "Select For Detector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select For Detector": {
+      "main": [
+        [
+          {
+            "node": "Anything to check?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything to check?": {
+      "main": [
+        [
+          {
+            "node": "AI Detector (Sapling)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Attach Detector Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Detector (Sapling)": {
+      "main": [
+        [
+          {
+            "node": "Attach Detector Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Detector Scores": {
+      "main": [
+        [
+          {
+            "node": "Merge History + Build Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge History + Build Outputs": {
+      "main": [
+        [
+          {
+            "node": "GitHub: commit results.json",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gmail: send daily summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Beirut"
+  },
+  "tags": []
+}

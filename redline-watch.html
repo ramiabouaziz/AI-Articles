@@ -126,14 +126,14 @@
     <div class="stats">
       <div class="stat"><div class="n" id="statDate">—</div><div class="l">Last scan</div></div>
       <div class="stat"><div class="n" id="statScanned">—</div><div class="l">Scanned</div></div>
-      <div class="stat"><div class="n" id="statChecked">—</div><div class="l">Detector-checked</div></div>
+      <div class="stat"><div class="n" id="statChecked">—</div><div class="l">Flagged (last scan)</div></div>
       <div class="stat"><div class="n" id="statFlagged">—</div><div class="l">Flagged (kept 90 days)</div></div>
     </div>
     <div id="demoBanner"></div>
 
     <div class="method">
-      <p><strong>How an article gets flagged.</strong> Two independent signals: (1) <strong>vocabulary drift</strong>, the over-use of words that became far more common in biomedical writing after ChatGPT's release (Matsui, 2025, <a href="https://doi.org/10.5334/pme.1929" target="_blank" rel="noopener">DOI 10.5334/pme.1929</a>), plus literal leftover chatbot phrases; and (2) a third-party <strong>AI-text detector</strong> (Sapling) run on a daily sample.</p>
-      <p><strong>Strong signal</strong> = a chatbot phrase, or both signals agree. <strong>Weak signal</strong> = only one fired. A detector score is a model's estimate for the text it saw, <strong>not the share of an article written by AI</strong>.</p>
+      <p><strong>How an article gets flagged.</strong> Two signals: <strong>vocabulary drift</strong>, the over-use of words that became far more common in biomedical writing after ChatGPT's release (Matsui, 2025, <a href="https://doi.org/10.5334/pme.1929" target="_blank" rel="noopener">DOI 10.5334/pme.1929</a>), and <strong>literal leftover chatbot phrases</strong>. No AI-detector service is used.</p>
+      <p><strong>Strong signal</strong> = a chatbot phrase, or an elevated vocabulary score (three or more strongly associated words at high density). <strong>Weak signal</strong> = a moderate vocabulary score (at least two such words). This is weak, population-level evidence and never proof that a text was written by AI.</p>
       <p><strong>Which model?</strong> This page does not try to say which AI tool wrote a text. No available method does that reliably.</p>
     </div>
   </header>
@@ -155,7 +155,6 @@
         <button data-tier="flagged" aria-pressed="true">Flagged</button>
         <button data-tier="strong" aria-pressed="false">Strong</button>
         <button data-tier="weak" aria-pressed="false">Weak</button>
-        <button data-tier="none" aria-pressed="false">Checked, no signal</button>
       </div>
       <div class="seg" id="sourceSeg" role="group" aria-label="Source">
         <button data-source="all" aria-pressed="true">All sources</button>
@@ -166,7 +165,6 @@
       <input type="search" id="searchBox" placeholder="Search titles…" aria-label="Search titles">
       <select id="sortSel" aria-label="Sort">
         <option value="signal">Sort: strongest signal</option>
-        <option value="detector">Sort: detector score</option>
         <option value="newest">Sort: newest</option>
       </select>
     </div>
@@ -176,7 +174,7 @@
 
   <section class="checker" id="checker">
     <h2>Check a passage yourself</h2>
-    <p class="sub">Paste text to scan it for the same vocabulary-drift signal used above. This does not run the AI detector.</p>
+    <p class="sub">Paste text to scan it for the same vocabulary-drift signal used above.</p>
     <p class="checker-privacy">Runs entirely in your browser. Nothing you paste is sent anywhere or stored.</p>
     <textarea id="checkerInput" placeholder="Paste a paragraph, abstract, or article excerpt here…"></textarea>
     <div class="checker-controls">
@@ -189,7 +187,7 @@
 
   <footer>
     <p class="caveat">Redline Watch surfaces editorial leads for a human reviewer. A flag reflects statistical similarity to known AI-drafting patterns, not evidence about any individual author's process, and should never be treated as a finding on its own.</p>
-    <p>Sources: PubMed E-utilities, Zenodo REST API, The Guardian Open Platform · Signals: vocabulary drift + Sapling AI detector (third-party, advisory) · Updated daily at 07:00 (Beirut time)</p>
+    <p>Sources: PubMed E-utilities, Zenodo REST API, The Guardian Open Platform · Signals: vocabulary drift + leftover chatbot phrases · Updated daily at 07:00 (Beirut time)</p>
   </footer>
 </div>
 
@@ -229,7 +227,7 @@ function scoreText(rawText, vocab) {
   const tooShort = wordCount < t.minWords;
   const strongOk = strongHits >= (t.minStrongHits || 1);
   if (explicitHit) level = 'explicit';
-  else if (!tooShort && strongOk && weighted >= t.elevated) level = 'elevated';
+  else if (!tooShort && strongHits >= (t.elevatedMinStrongHits || t.minStrongHits || 1) && weighted >= t.elevated) level = 'elevated';
   else if (!tooShort && strongOk && weighted >= t.moderate) level = 'moderate';
 
   const top = Object.entries(matched).sort((a, b) => b[1] - a[1]).slice(0, 8)
@@ -253,22 +251,21 @@ const DEFAULT_VOCAB = {
   weakWords: ['pivotal','crucial','robust','comprehensive','notably','furthermore','moreover','leverage','leveraging','foster','fostering','paradigm','holistic','landscape'],
   explicitPhrases: ['as an ai language model','as a large language model','as an ai assistant','regenerate response','as of my last knowledge update'],
   weights: { strong: 2, weak: 0.5 },
-  thresholds: { minWords: 80, minStrongHits: 2, moderate: 1.5, elevated: 3.0, detectorHigh: 85 }
+  thresholds: { minWords: 80, minStrongHits: 2, elevatedMinStrongHits: 3, moderate: 1.5, elevated: 3.0 }
 };
 
 const DEMO = (function(){
   const today = new Date();
   const d = n => new Date(today.getTime() - n*86400000).toISOString().slice(0,10);
   const runs = [];
-  for (let i = 13; i >= 0; i--) runs.push({ date: d(i), scanned: 150 + (i*7)%40, detectorChecked: 10, strong: (i*3)%3 === 0 ? 1 : 0, weak: (i*5)%4 });
+  for (let i = 13; i >= 0; i--) runs.push({ date: d(i), scanned: 150 + (i*7)%40, strong: (i*3)%3 === 0 ? 1 : 0, weak: (i*5)%4 });
   return {
     schema: 2, generatedAt: new Date().toISOString(), lastRun: runs[runs.length-1], runs,
     items: [
-      { source:'PubMed', title:'Sample article A (demo data, not a real paper)', journal:'Demo Journal', date:d(1), link:'#', firstSeen:d(1), words:210, vocabLevel:'elevated', vocabWeighted:3.4, matched:['delve x2','intricate','underscores'], explicitHit:null, detectorScore:93, signal:'strong' },
-      { source:'Zenodo', title:'Sample article B (demo data, not a real record)', journal:'Demo Author', date:d(1), link:'#', firstSeen:d(1), words:150, vocabLevel:'none', vocabWeighted:0.4, matched:[], explicitHit:null, detectorScore:88, signal:'weak' },
-      { source:'The Guardian', title:'Sample news item C (demo data)', journal:'The Guardian', date:d(0), link:'#', firstSeen:d(0), words:600, vocabLevel:'moderate', vocabWeighted:1.7, matched:['pivotal','tapestry x2'], explicitHit:null, detectorScore:null, signal:'weak' },
-      { source:'PubMed', title:'Sample article D (demo data)', journal:'Demo Journal', date:d(2), link:'#', firstSeen:d(2), words:190, vocabLevel:'none', vocabWeighted:0.0, matched:[], explicitHit:null, detectorScore:12, signal:'none' },
-      { source:'PubMed', title:'Sample article E with a chatbot phrase (demo data)', journal:'Demo Journal', date:d(3), link:'#', firstSeen:d(3), words:120, vocabLevel:'explicit', vocabWeighted:0.8, matched:[], explicitHit:'regenerate response', detectorScore:null, signal:'strong' }
+      { source:'PubMed', title:'Sample article A (demo data, not a real paper)', journal:'Demo Journal', date:d(1), link:'#', firstSeen:d(1), words:210, vocabLevel:'elevated', vocabWeighted:3.4, matched:['delve x2','intricate','underscores'], explicitHit:null, signal:'strong' },
+      { source:'Zenodo', title:'Sample article B (demo data, not a real record)', journal:'Demo Author', date:d(1), link:'#', firstSeen:d(1), words:150, vocabLevel:'moderate', vocabWeighted:1.9, matched:['meticulous','tapestry'], explicitHit:null, signal:'weak' },
+      { source:'The Guardian', title:'Sample news item C (demo data)', journal:'The Guardian', date:d(0), link:'#', firstSeen:d(0), words:600, vocabLevel:'moderate', vocabWeighted:1.7, matched:['plethora','tapestry x2'], explicitHit:null, signal:'weak' },
+      { source:'PubMed', title:'Sample article E with a chatbot phrase (demo data)', journal:'Demo Journal', date:d(3), link:'#', firstSeen:d(3), words:120, vocabLevel:'explicit', vocabWeighted:0.8, matched:[], explicitHit:'regenerate response', signal:'strong' }
     ]
   };
 })();
@@ -286,17 +283,14 @@ function renderCard(i){
   const chips = [];
   if (i.explicitHit) chips.push('chatbot phrase: “' + i.explicitHit + '”');
   (i.matched || []).slice(0, 6).forEach(m => chips.push(m));
-  const det = (i.detectorScore !== undefined && i.detectorScore !== null)
-    ? '<div class="metric"><span class="lbl">Detector score</span><span class="track"><span class="fill" style="width:' + Math.max(0, Math.min(100, i.detectorScore)) + '%"></span></span><span class="val">' + esc(i.detectorScore) + '/100</span></div>'
-    : '<div class="metric"><span class="lbl">Detector score</span><span class="val">not checked</span></div>';
   const vocab = '<div class="metric"><span class="lbl">Vocabulary drift</span><span class="val">' + esc(i.vocabLevel || 'none') + ' · ' + esc(i.vocabWeighted ?? 0) + ' per 100 words</span></div>';
   return '<article class="card tier-' + esc(tier) + '"><div class="margin" aria-hidden="true"></div><div class="body">' +
     '<div class="row-top"><span class="badge">' + esc(TIER_LABEL[tier] || tier) + '</span><span class="source">' + esc(i.source) + '</span>' +
     (i.date ? '<span class="date">' + esc(i.date) + '</span>' : '') + '</div>' +
     '<h3 class="headline"><a href="' + esc(safeUrl(i.link)) + '" target="_blank" rel="noopener">' + esc(i.title || 'Untitled record') + '</a></h3>' +
     (chips.length ? '<div class="signals">' + chips.map(c => '<span class="signal">' + esc(c) + '</span>').join('') + '</div>' : '') +
-    det + vocab +
-    '<div class="fine">Detector scores are model estimates for the text analysed, not the share of the article written by AI.</div>' +
+    vocab +
+    '<div class="fine">A vocabulary score is a weak signal: formulaic, technical or non-native English writing can trigger false positives.</div>' +
     '</div></article>';
 }
 
@@ -312,11 +306,10 @@ function visibleItems(){
     if (s.q && !String(i.title || '').toLowerCase().includes(s.q)) return false;
     return true;
   });
-  const det = i => (i.detectorScore === undefined || i.detectorScore === null) ? -1 : i.detectorScore;
+  const vw = i => i.vocabWeighted ?? 0;
   list.sort((a, b) => {
     if (s.sort === 'newest') return String(b.firstSeen || b.date).localeCompare(String(a.firstSeen || a.date));
-    if (s.sort === 'detector') return det(b) - det(a);
-    return (rank[b.signal || 'none'] - rank[a.signal || 'none']) || (det(b) - det(a));
+    return (rank[b.signal || 'none'] - rank[a.signal || 'none']) || (vw(b) - vw(a));
   });
   return list;
 }
@@ -347,7 +340,7 @@ function setStats(data, demo){
   const lr = data.lastRun || {};
   $('statDate').textContent = lr.date || '—';
   $('statScanned').textContent = lr.scanned ?? '—';
-  $('statChecked').textContent = lr.detectorChecked ?? '—';
+  $('statChecked').textContent = lr.date ? ((lr.strong || 0) + (lr.weak || 0)) : '—';
   $('statFlagged').textContent = (data.items || []).filter(i => (i.signal || 'none') !== 'none').length;
   $('updatedAt').textContent = data.generatedAt
     ? 'Updated ' + new Date(data.generatedAt).toLocaleString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })

@@ -1,7 +1,51 @@
 {
  "schema": 2,
- "generatedAt": null,
- "lastRun": null,
- "runs": [],
- "items": []
+ "generatedAt": "2026-10-08T18:24:51.341Z",
+ "lastRun": {
+  "date": "2026-10-08",
+  "scanned": 100,
+  "bySource": {
+   "PubMed": 100
+  },
+  "tooShort": 3,
+  "strong": 0,
+  "weak": 1
+ },
+ "runs": [
+  {
+   "date": "2026-10-08",
+   "scanned": 100,
+   "bySource": {
+    "PubMed": 100
+   },
+   "tooShort": 3,
+   "strong": 0,
+   "weak": 1
+  }
+ ],
+ "items": [
+  {
+   "source": "PubMed",
+   "sourceType": "literature",
+   "title": "Advances in Micro-Transfer Printing of Lithium Niobate Thin-Films for Silicon Photonic Devices.",
+   "journal": "Nanophotonics (Berlin, Germany)",
+   "date": "2026-03-20",
+   "link": "https://pubmed.ncbi.nlm.nih.gov/42846050/",
+   "words": 149,
+   "vocabLevel": "moderate",
+   "vocabWeighted": 2.68,
+   "matched": [
+    "underscores",
+    "garnered"
+   ],
+   "explicitHit": null,
+   "detectorScore": null,
+   "detectorProvider": null,
+   "signal": "weak",
+   "reasons": [
+    "Vocabulary drift (moderate): 2 strong word(s), weighted density 2.68 per 100 words"
+   ],
+   "firstSeen": "2026-10-08"
+  }
+ ]
 }

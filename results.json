@@ -1,11 +1,11 @@
 {
  "schema": 2,
- "generatedAt": "2026-10-10T17:39:27.613Z",
+ "generatedAt": "2026-10-10T17:48:43.739Z",
  "lastRun": {
   "date": "2026-10-10",
-  "scanned": 130,
+  "scanned": 80,
   "bySource": {
-   "PubMed": 100,
+   "PubMed": 50,
    "Zenodo": 25,
    "The Guardian": 5
   },
@@ -26,9 +26,9 @@
   },
   {
    "date": "2026-10-10",
-   "scanned": 130,
+   "scanned": 80,
    "bySource": {
-    "PubMed": 100,
+    "PubMed": 50,
     "Zenodo": 25,
     "The Guardian": 5
    },

@@ -1,13 +1,15 @@
 {
  "schema": 2,
- "generatedAt": "2026-10-10T17:23:48.363Z",
+ "generatedAt": "2026-10-10T17:39:27.613Z",
  "lastRun": {
   "date": "2026-10-10",
-  "scanned": 100,
+  "scanned": 130,
   "bySource": {
-   "PubMed": 100
+   "PubMed": 100,
+   "Zenodo": 25,
+   "The Guardian": 5
   },
-  "tooShort": 0,
+  "tooShort": 3,
   "strong": 0,
   "weak": 0
  },
@@ -24,11 +26,13 @@
   },
   {
    "date": "2026-10-10",
-   "scanned": 100,
+   "scanned": 130,
    "bySource": {
-    "PubMed": 100
+    "PubMed": 100,
+    "Zenodo": 25,
+    "The Guardian": 5
    },
-   "tooShort": 0,
+   "tooShort": 3,
    "strong": 0,
    "weak": 0
   }
